@@ -1,0 +1,5 @@
+/node_modules/
+.env
+.idea
+/building dataset/cities_by_distance.json
+/building dataset/worldcities_filtered.json
