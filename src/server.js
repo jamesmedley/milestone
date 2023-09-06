@@ -23,25 +23,45 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
+//connect to cities db
+//const { MongoClient } = require('mongodb');
+//const uri = 'mongodb://localhost:27017'; //heroku PaaS
+//const client = new MongoClient(uri);
 
-//firebase storage
-const admin = require('firebase-admin');
-const serviceAccount = require('strava-distance-comparison-firebase-adminsdk-koc68-c78ebcfc58.json');
+async function find_closest_match(distance) {
+    try {
+        await client.connect();
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: process.env.DB_STORAGE_STORAGE_BUCKET,
-});
+        const database = client.db('city_distances');
+        const collection = database.collection('strava-distances-comparison');
+        const queryValue = distance;
+        const result = await collection
+            .aggregate([
+                {
+                    $addFields: {
+                        absoluteDifference: {
+                            $abs: {
+                                $subtract: ['$distance', queryValue],
+                            },
+                        },
+                    },
+                },
+                {
+                    $sort: {
+                        absoluteDifference: 1,
+                    },
+                },
+                {
+                    $limit: 1,
+                },
+            ])
+            .toArray();
 
-const storage = admin.storage();
-const bucket = storage.bucket();
+        console.log(result);
+        return result
+    } finally {
+        await client.close();
+    }
+}
 
-const file = bucket.file('cities_by_distance.json');
-
-file.download({ destination: 'datasets/cities_by_distance.json' })
-  .then(() => {
-    console.log('File downloaded successfully.');
-  })
-  .catch((error) => {
-    console.error('Error downloading file:', error);
-  });
+//find_closest_match(1689.5).catch(console.error);

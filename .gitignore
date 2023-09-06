@@ -1,7 +1,7 @@
 /node_modules/
 .env
 .idea
-/building dataset/cities_by_distance.json
-/building dataset/worldcities_filtered.json
+/building_dataset/cities_by_distance.json
+/building_dataset/worldcities_filtered.json
 strava-distance-comparison-firebase-adminsdk-koc68-c78ebcfc58.json
 /datasets/
