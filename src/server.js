@@ -1,5 +1,9 @@
 require('dotenv').config();
 const path = require('path');
+const fetch = require('node-fetch');
+const strava_api = require('./athlete_stats.js');
+var admin = require("firebase-admin");
+const firebase = require('firebase');
 const express = require('express');
 
 const app = express();
@@ -7,8 +11,13 @@ const port = process.env.PORT || 3000;
 
 app.use(express.static('public'));
 app.use(express.json())
-//firebase realtime setup
-const firebase = require('firebase');
+
+var serviceAccount = require("../strava-distance-comparison-firebase-adminsdk-koc68-e74752edd8.json");
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://strava-distance-comparison-default-rtdb.europe-west1.firebasedatabase.app"
+});
+
 require('firebase/auth')
 const firebaseConfig = {
   apiKey: process.env.DB_APIKEY,
@@ -45,6 +54,22 @@ async function find_closest_match(distance) {
     } finally {
         await client.close();
     }
+}
+
+
+async function getOverallRideDistance(userUID) {
+  const userRef = admin.database().ref(`/users/${userUID}`);
+  try {
+    const snapshot = await userRef.once("value");
+    const userData = snapshot.val();
+    const refresh_token = userData.refreshToken;
+    const athlete_id = userData.athleteID;
+    const rideTotal = await strava_api.getAthleteRideTotal(refresh_token, athlete_id);
+    return rideTotal;
+  } catch (error) {
+    console.error("Error reading data:", error);
+    throw error;
+  }
 }
 
 
@@ -86,12 +111,12 @@ app.get('/google-signin', (req, res) => {
       .catch((error) => {
         res.status(401).json({ message: 'Google Sign-In failed', error: error.message });
       });
-  });
+});
 
 
 app.post('/register', (req, res) => {
     const { email, password } = req.body;
-  
+
     firebase
       .auth()
       .createUserWithEmailAndPassword(email, password)
@@ -107,7 +132,7 @@ app.post('/register', (req, res) => {
 
 app.post('/login', (req, res) => {
     const { email, password } = req.body;
-  
+    
     firebase
       .auth()
       .signInWithEmailAndPassword(email, password)
@@ -137,19 +162,17 @@ app.post('/logout', (req, res) => {
 app.get('/dashboard', authenticateMiddleware, (req, res) => {
     const dashboardPath = path.join(__dirname, '..', 'public', 'dashboard.html');
     res.sendFile(dashboardPath);
-  });
+});
 
 
 app.get('/strava-auth', authenticateMiddleware, (req, res) =>{
-  const stravaAuthUrl = `http://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=read,activity:write,activity:read`;
+  const stravaAuthUrl = `http://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=http://localhost:3000/exchange_token&approval_prompt=force&scope=read,activity:write,activity:read`;
   res.redirect(stravaAuthUrl);
 });
 
 
 app.get('/exchange_token', authenticateMiddleware, async (req, res) => {
-    console.log("hello");
     const authorizationCode = req.query.code;
-    console.log(authorizationCode);
     const tokenExchangeUrl = 'https://www.strava.com/oauth/token';
     const requestOptions = {
       method: 'POST',
@@ -166,22 +189,22 @@ app.get('/exchange_token', authenticateMiddleware, async (req, res) => {
     try {
       const response = await fetch(tokenExchangeUrl, requestOptions);
       const data = await response.json();
-  
       if (response.ok) {
         const accessToken = data.access_token;
         const refreshToken = data.refresh_token;
         const athleteID = data.athlete.id;
         const athleteUsername = data.athlete.username;
-        
+    
         const userUID = req.user.uid;
-        const userRef = admin.database().ref(`/users/${userUID}/stravaData`);
-        userRef.set({
-            accessToken,
-            refreshToken,
-            athleteID,
-            athleteUsername,
-        });
 
+        const userRef = admin.database().ref(`/users/${userUID}`);
+        await userRef.set({
+          accessToken,
+          refreshToken,
+          athleteID,
+          athleteUsername,
+        });
+        res.redirect('/dashboard');
       } else {
         console.error('Token exchange failed:', data);
         res.status(500).json({ error: 'Token exchange failed' });
