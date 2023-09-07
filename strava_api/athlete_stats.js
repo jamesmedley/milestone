@@ -11,7 +11,7 @@ async function getAthleteRideTotal(res, athlete_id) {
     return distance
 }
 
-function reAuthorise() {
+function reAuthorise(refresh_token) {
     fetch(auth_link, {
         method: 'post',
         headers: {
@@ -21,12 +21,12 @@ function reAuthorise() {
         body: JSON.stringify({
         client_id: process.env.CLIENT_ID,
         client_secret: process.env.CLIENT_SECRET,
-        refresh_token: process.env.REFRESH_TOKEN,
+        refresh_token: refresh_token,
         grant_type: 'refresh_token'
         })
     })
     .then(res => res.json())
-    .then(res => getAthleteRideTotal(res, 63721242))
+    .then(res => getAthleteRideTotal(res, 20722587))
     .catch(error => {
       console.error('Error re-authorizing:', error);
     });
