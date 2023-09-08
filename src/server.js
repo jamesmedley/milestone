@@ -1,7 +1,7 @@
 require('dotenv').config();
 const path = require('path');
 const fetch = require('node-fetch');
-const strava_api = require('./athlete_stats.js');
+const strava_api = require('./strava_api.js');
 var admin = require("firebase-admin");
 const firebase = require('firebase');
 const express = require('express');
@@ -15,7 +15,7 @@ app.use(express.json())
 var serviceAccount = require("../strava-distance-comparison-firebase-adminsdk-koc68-e74752edd8.json");
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://strava-distance-comparison-default-rtdb.europe-west1.firebasedatabase.app"
+  databaseURL: process.env.DB_DATABASE_URL
 });
 
 require('firebase/auth')
@@ -57,15 +57,146 @@ async function find_closest_match(distance) {
 }
 
 
-async function getOverallRideDistance(userUID) {
-  const userRef = admin.database().ref(`/users/${userUID}`);
+async function deleteStravaWebhook(sub_id){
+  const subscriptionUrl = `https://www.strava.com/api/v3/push_subscriptions/${sub_id}`;
+  const requestOptions = {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      client_id: process.env.CLIENT_ID,
+      client_secret: process.env.CLIENT_SECRET
+    }),
+  };
+  try {
+    const response = await fetch(subscriptionUrl, requestOptions);
+    if (response.ok) {
+      console.log('Webhook subscription successfully deleted.');
+    } else {
+      const responseData = await response.json();
+      console.error('Failed to delete webhook subscription:', responseData);
+    }
+  } catch (error) {
+    console.error('Error deleting webhook subscription:', error);
+  }
+}
+
+
+async function viewStravaWebhooks(){
+  const subscriptionUrl = `https://www.strava.com/api/v3/push_subscriptions/?client_id=${process.env.CLIENT_ID}&client_secret=${process.env.CLIENT_SECRET}`;
+  const requestOptions = {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  };
+  try {
+    const response = await fetch(subscriptionUrl, requestOptions);
+    if (response.ok) {
+      const responseData = await response.json();
+      console.log('Webhook subscriptions successfully received:');
+      console.log(responseData);
+    } else {
+      console.error('Failed to retrieve webhook subscriptions:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error retrieving webhook subscriptions:', error);
+  }
+}
+
+async function createStravaWebhook() {
+  const subscriptionUrl = 'https://www.strava.com/api/v3/push_subscriptions';
+  const callbackUrl = 'https://ef72-2a04-203-74b8-100-c2f-ea76-4ff9-e7d6.ngrok.io/webhook'; //temporary ngrok public domain
+  await viewStravaWebhooks()
+  await deleteStravaWebhook(process.env.WEBHOOK_ID)
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      client_id: process.env.CLIENT_ID,
+      client_secret: process.env.CLIENT_SECRET,
+      callback_url: callbackUrl,
+      verify_token: process.env.WEBHOOK_VERIFY_TOKEN,
+    }),
+  };
+
+  try {
+    const response = await fetch(subscriptionUrl, requestOptions);
+    if (response.ok) {
+      const responseData = await response.json();
+      process.env.WEBHOOK_ID = responseData.id
+      console.log('Webhook subscription created:', responseData);
+    } else {
+      console.error('Failed to create webhook subscription:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error creating webhook subscription:', error);
+  }
+}
+//createStravaWebhook(); // create strava webhook
+
+
+async function isBikeRide(activity_id, athlete_id){
+  const userRef = admin.database().ref(`/users/${athlete_id}`);
   try {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
     const refresh_token = userData.refreshToken;
-    const athlete_id = userData.athleteID;
+    const ride = await strava_api.getActivityType(refresh_token, activity_id);
+    return ride == "Ride";
+  } catch (error) {
+    console.error("Error reading data:", error);
+    throw error;
+  }
+}
+
+
+async function getOverallRideDistance(athlete_id) {
+  const userRef = admin.database().ref(`/users/${athlete_id}`);
+  try {
+    const snapshot = await userRef.once("value");
+    const userData = snapshot.val();
+    const refresh_token = userData.refreshToken;
     const rideTotal = await strava_api.getAthleteRideTotal(refresh_token, athlete_id);
     return rideTotal;
+  } catch (error) {
+    console.error("Error reading data:", error);
+    throw error;
+  }
+}
+
+
+async function updateDescription(activity_id, athlete_id){
+  const userRef = admin.database().ref(`/users/${athlete_id}`);
+  try {
+    const snapshot = await userRef.once("value");
+    const userData = snapshot.val();
+    const refresh_token = userData.refreshToken;
+    const distance = await getOverallRideDistance(athlete_id)
+    const city_api_url = `http://localhost:3000/api/city-separation-distance?distance=${distance}`;
+    try {
+      const response = await fetch(city_api_url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        const city_data = await response.json();
+        city1 = city_data[0].city1
+        city2 = city_data[0].city2
+        const description = `You have now cycled ${distance}km on Strava. That's the equivalent of cycling from 📍${city1} to 📍${city2}`;
+        await strava_api.updateDescription(refresh_token, activity_id, description);
+      } else {
+        throw new Error(`Failed to fetch data: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      throw error;
+    }
   } catch (error) {
     console.error("Error reading data:", error);
     throw error;
@@ -85,7 +216,7 @@ function authenticateMiddleware(req, res, next) {
   }
 
 
-app.get('/api/city-separation-distance', authenticateMiddleware, async (req, res) => {
+app.get('/api/city-separation-distance', async (req, res) => {
     const { distance } = req.query;
     try {
       const result = await find_closest_match(Number(distance));
@@ -173,6 +304,10 @@ app.get('/strava-auth', authenticateMiddleware, (req, res) =>{
 
 app.get('/exchange_token', authenticateMiddleware, async (req, res) => {
     const authorizationCode = req.query.code;
+    if(req.query.scope != 'read,activity:write,activity:read'){
+      res.redirect('/strava-auth');
+      return;
+    }
     const tokenExchangeUrl = 'https://www.strava.com/oauth/token';
     const requestOptions = {
       method: 'POST',
@@ -197,11 +332,11 @@ app.get('/exchange_token', authenticateMiddleware, async (req, res) => {
     
         const userUID = req.user.uid;
 
-        const userRef = admin.database().ref(`/users/${userUID}`);
+        const userRef = admin.database().ref(`/users/${athleteID}`);
         await userRef.set({
           accessToken,
           refreshToken,
-          athleteID,
+          userUID,
           athleteUsername,
         });
         res.redirect('/dashboard');
@@ -213,6 +348,41 @@ app.get('/exchange_token', authenticateMiddleware, async (req, res) => {
       console.error('Token exchange error:', error);
       res.status(500).json({ error: 'Token exchange error' });
     }
+});
+
+
+app.post('/webhook', async (req, res) => {
+  console.log("webhook event received!", req.query, req.body);
+  res.status(200).send('EVENT_RECEIVED');
+  if(req.body.aspect_type == 'create' && req.body.object_type == 'activity'){
+    const activity_id = req.body.object_id;
+    const athlete_id = req.body.owner_id;
+    if(await isBikeRide(activity_id, athlete_id)){
+      await updateDescription(activity_id, athlete_id);
+    }   
+  }
+})
+
+
+app.get('/webhook', (req, res) => {
+  // Your verify token. Should be a random string.
+  const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN;
+  // Parses the query params
+  let mode = req.query['hub.mode'];
+  let token = req.query['hub.verify_token'];
+  let challenge = req.query['hub.challenge'];
+  // Checks if a token and mode is in the query string of the request
+  if (mode && token) {
+    // Verifies that the mode and token sent are valid
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {     
+      // Responds with the challenge token from the request
+      console.log('WEBHOOK_VERIFIED');
+      res.json({"hub.challenge":challenge});  
+    } else {
+      // Responds with '403 Forbidden' if verify tokens do not match
+      res.sendStatus(403);      
+    }
+  }
 });
   
 
