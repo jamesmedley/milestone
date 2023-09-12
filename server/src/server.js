@@ -1,5 +1,6 @@
 require('dotenv').config();
 const path = require('path');
+const fs = require('fs')
 const fetch = require('node-fetch');
 const strava_api = require('./strava_api.js');
 var admin = require("firebase-admin");
@@ -30,6 +31,12 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
+
+//load activity descriptions
+const descriptionsData = JSON.parse(fs.readFileSync('../descriptions.json', 'utf8'))
+const descriptions = descriptionsData.descriptions;
+
 
 //connect to cities db
 const { MongoClient } = require('mongodb');
@@ -169,6 +176,12 @@ async function getOverallRideDistance(athlete_id) {
 }
 
 
+function getRandomDescription() {
+  const randomIndex = Math.floor(Math.random() * descriptions.length);
+  return descriptions[randomIndex];
+}
+
+
 async function updateDescription(activity_id, athlete_id){
   const userRef = admin.database().ref(`/users/${athlete_id}`);
   try {
@@ -186,10 +199,16 @@ async function updateDescription(activity_id, athlete_id){
       });
       if (response.ok) {
         const city_data = await response.json();
-        city1 = city_data[0].city1
-        city2 = city_data[0].city2
-        const description = `You have now cycled ${distance}km on Strava. That's the equivalent of cycling from 📍${city1} to 📍${city2}`;
-        await strava_api.updateDescription(refresh_token, activity_id, description);
+        const city1 = city_data[0].city1;
+        const city2 = city_data[0].city2;
+        
+        const randomDescription = getRandomDescription();
+        const descriptionWithValues = randomDescription
+          .replace('{x}', distance)
+          .replace('{City1}', city1)
+          .replace('{City2}', city2);
+
+        await strava_api.updateDescription(refresh_token, activity_id, descriptionWithValues);
       } else {
         throw new Error(`Failed to fetch data: ${response.statusText}`);
       }
