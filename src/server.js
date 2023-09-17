@@ -243,6 +243,39 @@ app.get('/api/city-separation-distance', async (req, res) => {
 });
 
 
+app.get('/api/session', checkStravaAuth, (req, res) => {
+  const sessionData = req.session;
+  res.json(sessionData);
+});
+
+
+app.get('/api/athlete-data', checkStravaAuth, async (req,res) =>{
+  const athlete_id = req.query.athlete_id;
+  if(athlete_id != req.session.athleteID){
+    res.json({"Error":"Unauthorised"});
+    return;
+  }
+  const userRef = admin.database().ref(`/users/${athlete_id}`);
+  try {
+    const snapshot = await userRef.once("value");
+    const userData = snapshot.val();
+    const athleteID = userData.athleteID;
+    const athleteUsername = userData.athleteUsername;
+    const athleteName = userData.athleteName;
+    const athletePFP = userData.athletePFP
+    res.json({
+      athleteID,
+      athleteUsername,
+      athleteName,
+      athletePFP
+    })
+  } catch (error) {
+    console.error("Error reading data:", error);
+    res.json(500)
+  }
+})
+
+
 function checkStravaAuth(req, res, next) {
   const athleteID = req.session.athleteID;
   if (athleteID) {
@@ -288,21 +321,24 @@ app.get('/exchange_token', async (req, res) => {
       const response = await fetch(tokenExchangeUrl, requestOptions);
       const data = await response.json();
       if (response.ok) {
+        console.log(data)
         const accessToken = data.access_token;
         const refreshToken = data.refresh_token;
         const athleteID = data.athlete.id;
         const athleteUsername = data.athlete.username;
+        const athleteName = data.athlete.firstname
+        const athletePFP = data.athlete.profile
         
         req.session.athleteID = athleteID;
-        req.session.accessToken = accessToken;
-        req.session.refreshToken = refreshToken;
-        req.session.athleteUsername = athleteUsername;
 
         const userRef = admin.database().ref(`/users/${athleteID}`);
         await userRef.set({
           accessToken,
           refreshToken,
+          athleteID,
           athleteUsername,
+          athleteName,
+          athletePFP
         });
         res.redirect('/dashboard');
       } else {

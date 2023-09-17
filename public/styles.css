@@ -1,3 +1,54 @@
+@font-face {
+    font-family: 'IBMPlexSans';
+    src: url('/fonts/IBMPlexSans-Regular.ttf') format('truetype');
+    font-weight: normal; 
+}
+
+@font-face {
+    font-family: 'IBMPlexSans';
+    src: url('/fonts/IBMPlexSans-Medium.ttf') format('truetype');
+    font-weight: 500;
+}
+
+@font-face {
+    font-family: 'IBMPlexSans';
+    src: url('/fonts/IBMPlexSans-Bold.ttf') format('truetype');
+    font-weight: bold; 
+}
+
+@font-face {
+    font-family: 'IBMPlexSans';
+    src: url('/fonts/IBMPlexSans-Italic.ttf') format('truetype');
+    font-style: italic; 
+}
+
+
+.standard-font{
+    font-family: 'IBMPlexSans', sans-serif;
+    font-weight: 500;
+}
+
+.medium-font{
+    font-family: 'IBMPlexSans', sans-serif;
+}
+
+.bold-font{
+    font-family: 'IBMPlexSans', sans-serif;
+    font-weight: bold;
+}
+
+.italic-font{
+    font-family: 'IBMPlexSans', sans-serif;
+    font-style: italic;
+}
+
+.bold-italic-font{
+    font-family: 'IBMPlexSans', sans-serif;
+    font-style: italic;
+    font-weight: bold;
+}
+
+
 body {
     margin: 0;
     padding: 0;
@@ -29,11 +80,11 @@ main {
 }
 
 .authentication-section h2 {
-    font-size: 24px;
+    font-size: 32px;
 }
 
 .authentication-section p {
-    font-size: 16px;
+    font-size: 20px;
 }
 
 .authentication-section a img {
@@ -47,16 +98,16 @@ main {
 }
 
 .app-info h2 {
-    font-size: 24px;
+    font-size: 32px;
 }
 
 .app-info p {
-    font-size: 16px;
+    font-size: 20px;
 }
 
 footer {
     text-align: center;
-    padding: 10px;
+    padding: 5px;
     background-color: #333;
     color: #fff;
     font-size: 14px;
