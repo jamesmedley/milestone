@@ -8,7 +8,7 @@
     "mongodb": "^6.0.0",
     "node-fetch": "^2.6.7"
   },
-  "name": "strava-distance-comparitor",
+  "name": "milestone",
   "version": "1.0.0",
   "main": "public/js/main.js",
   "scripts": {
@@ -16,13 +16,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jamesmedley/strava-distance-comparitor.git"
+    "url": "git+https://github.com/jamesmedley/milestone.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/jamesmedley/strava-distance-comparitor/issues"
+    "url": "https://github.com/jamesmedley/milestone/issues"
   },
-  "homepage": "https://github.com/jamesmedley/strava-distance-comparitor#readme",
+  "homepage": "https://github.com/jamesmedley/milestone#readme",
   "description": ""
 }

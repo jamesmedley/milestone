@@ -1,0 +1,63 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    text-align: center;
+    padding: 20px;
+    background-color: #333;
+    color: #fff;
+}
+
+header img {
+    max-width: 400px;
+    height: auto;
+}
+
+main {
+    margin: 20px;
+    flex-grow: 1;
+}
+
+.authentication-section {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.authentication-section h2 {
+    font-size: 24px;
+}
+
+.authentication-section p {
+    font-size: 16px;
+}
+
+.authentication-section a img {
+    max-width: auto;
+    height: auto;
+}
+
+.app-info {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.app-info h2 {
+    font-size: 24px;
+}
+
+.app-info p {
+    font-size: 16px;
+}
+
+footer {
+    text-align: center;
+    padding: 10px;
+    background-color: #333;
+    color: #fff;
+    font-size: 14px;
+}
