@@ -6,12 +6,20 @@ const strava_api = require('./strava_api.js');
 var admin = require("firebase-admin");
 const firebase = require('firebase');
 const express = require('express');
+const session = require('express-session');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.static('public'));
 app.use(express.json())
+app.use(
+  session({
+    secret: process.env.EXPRESS_SESSION_KEY,
+    resave: false,
+    saveUninitialized: true,
+  })
+);
 
 var serviceAccount = require("../strava-distance-comparison-firebase-adminsdk-koc68-e74752edd8.json");
 admin.initializeApp({
@@ -34,7 +42,7 @@ firebase.initializeApp(firebaseConfig);
 
 
 //load activity descriptions
-const descriptionsData = JSON.parse(fs.readFileSync('../descriptions.json', 'utf8'))
+const descriptionsData = JSON.parse(fs.readFileSync('descriptions.json', 'utf8'))
 const descriptions = descriptionsData.descriptions;
 
 
@@ -223,18 +231,6 @@ async function updateDescription(activity_id, athlete_id){
 }
 
 
-function authenticateMiddleware(req, res, next) {
-    const user = firebase.auth().currentUser;
-  
-    if (user) {
-      req.user = user;
-      next();
-    } else {
-      res.status(401).json({ message: 'Unauthorized' });
-    }
-  }
-
-
 app.get('/api/city-separation-distance', async (req, res) => {
     const { distance } = req.query;
     try {
@@ -247,81 +243,29 @@ app.get('/api/city-separation-distance', async (req, res) => {
 });
 
 
-app.get('/google-signin', (req, res) => {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    
-    // You can customize the permissions you request from the user here
-    // provider.addScope('https://www.googleapis.com/auth/plus.login');
-    
-    firebase.auth().signInWithPopup(provider)
-      .then((result) => {
-        // Google Sign-In successful, result.user contains user info
-        res.redirect('/dashboard'); // Redirect to a protected route or dashboard
-      })
-      .catch((error) => {
-        res.status(401).json({ message: 'Google Sign-In failed', error: error.message });
-      });
-});
+function checkStravaAuth(req, res, next) {
+  const athleteID = req.session.athleteID;
+  if (athleteID) {
+    next(); 
+  } else {
+    res.redirect('/');
+  }
+}
 
 
-app.post('/register', (req, res) => {
-    const { email, password } = req.body;
-
-    firebase
-      .auth()
-      .createUserWithEmailAndPassword(email, password)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        res.status(201).json({ message: 'Registration successful', user });
-      })
-      .catch((error) => {
-        res.status(400).json({ message: 'Registration failed', error: error.message });
-      });
-});
-
-
-app.post('/login', (req, res) => {
-    const { email, password } = req.body;
-    
-    firebase
-      .auth()
-      .signInWithEmailAndPassword(email, password)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        res.status(200).json({ message: 'Login successful', user });
-      })
-      .catch((error) => {
-        res.status(401).json({ message: 'Login failed', error: error.message });
-      });
-});
-
-
-app.post('/logout', (req, res) => {
-    firebase
-      .auth()
-      .signOut()
-      .then(() => {
-        res.status(200).json({ message: 'Logout successful' });
-      })
-      .catch((error) => {
-        res.status(500).json({ message: 'Logout failed', error: error.message });
-      });
-});
-
-
-app.get('/dashboard', authenticateMiddleware, (req, res) => {
+app.get('/dashboard', checkStravaAuth,(req, res) => {
     const dashboardPath = path.join(__dirname, '..', 'public', 'dashboard.html');
     res.sendFile(dashboardPath);
 });
 
 
-app.get('/strava-auth', authenticateMiddleware, (req, res) =>{
+app.get('/strava-auth', (req, res) =>{
   const stravaAuthUrl = `http://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=http://localhost:3000/exchange_token&approval_prompt=force&scope=read,activity:write,activity:read`;
   res.redirect(stravaAuthUrl);
 });
 
 
-app.get('/exchange_token', authenticateMiddleware, async (req, res) => {
+app.get('/exchange_token', async (req, res) => {
     const authorizationCode = req.query.code;
     if(req.query.scope != 'read,activity:write,activity:read'){
       res.redirect('/strava-auth');
@@ -348,14 +292,16 @@ app.get('/exchange_token', authenticateMiddleware, async (req, res) => {
         const refreshToken = data.refresh_token;
         const athleteID = data.athlete.id;
         const athleteUsername = data.athlete.username;
-    
-        const userUID = req.user.uid;
+        
+        req.session.athleteID = athleteID;
+        req.session.accessToken = accessToken;
+        req.session.refreshToken = refreshToken;
+        req.session.athleteUsername = athleteUsername;
 
         const userRef = admin.database().ref(`/users/${athleteID}`);
         await userRef.set({
           accessToken,
           refreshToken,
-          userUID,
           athleteUsername,
         });
         res.redirect('/dashboard');
@@ -383,7 +329,7 @@ app.post('/webhook', async (req, res) => {
 })
 
 
-app.get('/webhook', (req, res) => {
+app.get('/webhook', (req, res) => { // code from strava docs
   // Your verify token. Should be a random string.
   const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN;
   // Parses the query params
