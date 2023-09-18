@@ -42,8 +42,10 @@ firebase.initializeApp(firebaseConfig);
 
 
 //load activity descriptions
-const descriptionsData = JSON.parse(fs.readFileSync('descriptions.json', 'utf8'))
-const descriptions = descriptionsData.descriptions;
+const cyclingDescriptionsData = JSON.parse(fs.readFileSync('cycling-descriptions.json', 'utf8'))
+const cyclingDescriptions = cyclingDescriptionsData.descriptions;
+const runningDescriptionsData = JSON.parse(fs.readFileSync('running-descriptions.json', 'utf8'))
+const runningDescriptions = runningDescriptionsData.descriptions;
 
 
 //connect to cities db
@@ -122,7 +124,7 @@ async function viewStravaWebhooks(){
 
 async function createStravaWebhook() {
   const subscriptionUrl = 'https://www.strava.com/api/v3/push_subscriptions';
-  const callbackUrl = 'https://ef72-2a04-203-74b8-100-c2f-ea76-4ff9-e7d6.ngrok.io/webhook'; //temporary ngrok public domain
+  const callbackUrl = 'https://6fc5-92-233-11-177.ngrok.io/webhook'; //temporary ngrok public domain
   await viewStravaWebhooks()
   await deleteStravaWebhook(process.env.WEBHOOK_ID)
   const requestOptions = {
@@ -154,14 +156,70 @@ async function createStravaWebhook() {
 //createStravaWebhook(); // create strava webhook
 
 
+async function isEnableBikeDescription(athleteID){
+  const userRef = admin.database().ref(`/users/${athleteID}`);
+  try{
+    const snapshot = await userRef.once("value");
+    const userData = snapshot.val();
+    const enableBikeDescription = userData.enableBikeDescription;
+    return enableBikeDescription;
+  }catch{
+    console.error("Error reading data:", error);
+    throw error;
+  }
+}
+
+
+async function isEnableRunDescription(athleteID){
+  const userRef = admin.database().ref(`/users/${athleteID}`);
+  try{
+    const snapshot = await userRef.once("value");
+    const userData = snapshot.val();
+    const enableRunDescription = userData.enableRunDescription;
+    return enableRunDescription;
+  }catch{
+    console.error("Error reading data:", error);
+    throw error;
+  }
+}
+
+
+async function isEnableDescriptionChanges(athleteID){
+  const userRef = admin.database().ref(`/users/${athleteID}`);
+  try{
+    const snapshot = await userRef.once("value");
+    const userData = snapshot.val();
+    const enableDescriptionChanges = userData.enableDescriptionChanges;
+    return enableDescriptionChanges;
+  }catch{
+    console.error("Error reading data:", error);
+    throw error;
+  }
+}
+
 async function isBikeRide(activity_id, athlete_id){
   const userRef = admin.database().ref(`/users/${athlete_id}`);
   try {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
     const refresh_token = userData.refreshToken;
-    const ride = await strava_api.getActivityType(refresh_token, activity_id);
-    return ride == "Ride";
+    const type = await strava_api.getActivityType(refresh_token, activity_id);
+    return type == "Ride";
+  } catch (error) {
+    console.error("Error reading data:", error);
+    throw error;
+  }
+}
+
+
+async function isRun(activity_id, athlete_id){
+  const userRef = admin.database().ref(`/users/${athlete_id}`);
+  try {
+    const snapshot = await userRef.once("value");
+    const userData = snapshot.val();
+    const refresh_token = userData.refreshToken;
+    const type = await strava_api.getActivityType(refresh_token, activity_id);
+    return type == "Run";
   } catch (error) {
     console.error("Error reading data:", error);
     throw error;
@@ -183,20 +241,36 @@ async function getOverallRideDistance(athlete_id) {
   }
 }
 
-
-function getRandomDescription() {
-  const randomIndex = Math.floor(Math.random() * descriptions.length);
-  return descriptions[randomIndex];
-}
-
-
-async function updateDescription(activity_id, athlete_id){
+async function getOverallRunDistance(athlete_id) {
   const userRef = admin.database().ref(`/users/${athlete_id}`);
   try {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
     const refresh_token = userData.refreshToken;
-    const distance = await getOverallRideDistance(athlete_id)
+    const rideTotal = await strava_api.getAthleteRunTotal(refresh_token, athlete_id);
+    return rideTotal;
+  } catch (error) {
+    console.error("Error reading data:", error);
+    throw error;
+  }
+}
+
+
+function getRandomDescription(bike) {
+  const descriptions = bike ? cyclingDescriptions : runningDescriptions;
+  const randomIndex = Math.floor(Math.random() * descriptions.length);
+  return descriptions[randomIndex];
+}
+
+
+
+async function updateDescription(activity_id, athlete_id, bike){
+  const userRef = admin.database().ref(`/users/${athlete_id}`);
+  try {
+    const snapshot = await userRef.once("value");
+    const userData = snapshot.val();
+    const refresh_token = userData.refreshToken;
+    const distance = bike ? await getOverallRideDistance(athlete_id) : await getOverallRunDistance(athlete_id);
     const city_api_url = `http://localhost:3000/api/city-separation-distance?distance=${distance}`;
     try {
       const response = await fetch(city_api_url, {
@@ -210,7 +284,7 @@ async function updateDescription(activity_id, athlete_id){
         const city1 = city_data[0].city1;
         const city2 = city_data[0].city2;
         
-        const randomDescription = getRandomDescription();
+        const randomDescription = getRandomDescription(bike);
         const descriptionWithValues = randomDescription
           .replace('{x}', distance)
           .replace('{City1}', city1)
@@ -262,18 +336,69 @@ app.get('/api/athlete-data', checkStravaAuth, async (req,res) =>{
     const athleteID = userData.athleteID;
     const athleteUsername = userData.athleteUsername;
     const athleteName = userData.athleteName;
-    const athletePFP = userData.athletePFP
+    const athletePFP = userData.athletePFP;
+    const enableDescriptionChanges = userData.enableDescriptionChanges;
+    const enableRunDescription = userData.enableRunDescription;
+    const enableBikeDescription = userData.enableBikeDescription;
     res.json({
       athleteID,
       athleteUsername,
       athleteName,
-      athletePFP
+      athletePFP,
+      enableDescriptionChanges,
+      enableRunDescription,
+      enableBikeDescription
     })
   } catch (error) {
     console.error("Error reading data:", error);
-    res.json(500)
+    res.sendStatus(500); 
   }
 })
+
+
+app.post('/api/save-preferences', checkStravaAuth, (req, res) =>{
+  try{
+    const athleteID = req.session.athleteID;
+    const userRef = admin.database().ref(`/users/${athleteID}`);
+    const { enableRunDescription, enableBikeDescription, enableDescriptionChanges } = req.body;
+    userRef.update({
+      enableRunDescription,
+      enableBikeDescription,
+      enableDescriptionChanges,
+    })
+    .then(() => {
+      return res.status(200).json({ message: 'Preferences saved successfully' });
+    })
+    .catch(error => {
+      console.error('Error saving preferences:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    });
+  } catch (error) {
+    console.error('Error saving preferences:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.delete('/api/delete-account', checkStravaAuth, (req, res) => {
+  const athleteID = req.session.athleteID;
+  const userRef = admin.database().ref(`/users/${athleteID}`);
+  userRef.remove()
+      .then(() => {
+          req.session.destroy(err => {
+              if (err) {
+                  console.error('Error destroying session:', err);
+                  return res.status(500).json({ error: 'Internal Server Error' });
+              }
+              res.sendStatus(204);
+          });
+      })
+      .catch(error => {
+          console.error('Error deleting account:', error);
+          return res.status(500).json({ error: 'Internal Server Error' });
+      });
+});
+
 
 
 function checkStravaAuth(req, res, next) {
@@ -299,57 +424,73 @@ app.get('/strava-auth', (req, res) =>{
 
 
 app.get('/exchange_token', async (req, res) => {
-    const authorizationCode = req.query.code;
-    if(req.query.scope != 'read,activity:write,activity:read'){
-      res.redirect('/strava-auth');
-      return;
-    }
-    const tokenExchangeUrl = 'https://www.strava.com/oauth/token';
-    const requestOptions = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        client_id: process.env.CLIENT_ID,
-        client_secret: process.env.CLIENT_SECRET,
-        code: authorizationCode,
-        grant_type: 'authorization_code',
-      }),
-    };
-    try {
-      const response = await fetch(tokenExchangeUrl, requestOptions);
-      const data = await response.json();
-      if (response.ok) {
-        console.log(data)
-        const accessToken = data.access_token;
-        const refreshToken = data.refresh_token;
-        const athleteID = data.athlete.id;
-        const athleteUsername = data.athlete.username;
-        const athleteName = data.athlete.firstname
-        const athletePFP = data.athlete.profile
-        
-        req.session.athleteID = athleteID;
+  const authorizationCode = req.query.code;
+  if (req.query.scope != 'read,activity:write,activity:read') {
+    res.redirect('/strava-auth');
+    return;
+  }
+  const tokenExchangeUrl = 'https://www.strava.com/oauth/token';
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      client_id: process.env.CLIENT_ID,
+      client_secret: process.env.CLIENT_SECRET,
+      code: authorizationCode,
+      grant_type: 'authorization_code',
+    }),
+  };
+  try {
+    const response = await fetch(tokenExchangeUrl, requestOptions);
+    const data = await response.json();
+    if (response.ok) {
+      const accessToken = data.access_token;
+      const refreshToken = data.refresh_token;
+      const athleteID = data.athlete.id;
+      const athleteUsername = data.athlete.username;
+      const athleteName = data.athlete.firstname;
+      const athletePFP = data.athlete.profile;
+      const enableDescriptionChanges = true;
+      const enableRunDescription = false;
+      const enableBikeDescription = false;
+      req.session.athleteID = athleteID;
 
-        const userRef = admin.database().ref(`/users/${athleteID}`);
-        await userRef.set({
-          accessToken,
-          refreshToken,
-          athleteID,
-          athleteUsername,
-          athleteName,
-          athletePFP
-        });
-        res.redirect('/dashboard');
-      } else {
-        console.error('Token exchange failed:', data);
-        res.status(500).json({ error: 'Token exchange failed' });
+      const userRef = admin.database().ref(`/users/${athleteID}`);
+      const snapshot = await userRef.once('value');
+      const userData = snapshot.val();
+      
+      if (!userData.enableDescriptionChanges) {
+        userData.enableDescriptionChanges = enableDescriptionChanges;
       }
-    } catch (error) {
-      console.error('Token exchange error:', error);
-      res.status(500).json({ error: 'Token exchange error' });
+      if (!userData.enableRunDescription) {
+        userData.enableRunDescription = enableRunDescription;
+      }
+      if (!userData.enableBikeDescription) {
+        userData.enableBikeDescription = enableBikeDescription;
+      }
+
+      await userRef.set({
+        ...userData, 
+        accessToken,
+        refreshToken,
+        athleteID,
+        athleteUsername,
+        athleteName,
+        athletePFP,
+      });
+      res.redirect('/dashboard');
+    } else {
+      console.error('Token exchange failed:', data);
+      res.status(500).json({ error: 'Token exchange failed' });
     }
+  } catch (error) {
+    console.error('Token exchange error:', error);
+    res.status(500).json({ error: 'Token exchange error' });
+  }
 });
+
 
 
 app.post('/webhook', async (req, res) => {
@@ -358,9 +499,12 @@ app.post('/webhook', async (req, res) => {
   if(req.body.aspect_type == 'create' && req.body.object_type == 'activity'){
     const activity_id = req.body.object_id;
     const athlete_id = req.body.owner_id;
-    if(await isBikeRide(activity_id, athlete_id)){
-      await updateDescription(activity_id, athlete_id);
-    }   
+    if(await isBikeRide(activity_id, athlete_id) && await isEnableBikeDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)){
+      await updateDescription(activity_id, athlete_id, true);
+    }  
+    if(await isRun(activity_id, athlete_id) && await isEnableRunDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)){
+      await updateDescription(activity_id, athlete_id, false);
+    } 
   }
 })
 

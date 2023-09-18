@@ -13,15 +13,44 @@
     </header>
     
     <main>
-        <p id="user-greeting">Hello, {name}</p>
+        <p class="bold-font" id="user-greeting">Hello, {name}</p>
         <div id="user-profile">
             <img id="user-profile-image" src="" alt="User Profile">
         </div>
+    
+        <form id="preferences-form">
+            <h2 class="medium-font">Preferences</h2>
+            <div>
+                <label class="medium-font">
+                    <input type="checkbox" id="edit-runs" name="edit-runs">
+                    Edit Descriptions for Runs
+                </label>
+            </div>
+            <div>
+                <label class="medium-font">
+                    <input type="checkbox" id="edit-bike-rides" name="edit-bike-rides">
+                    Edit Descriptions for Bike Rides
+                </label>
+            </div>
+            <div class="toggle-switch">
+                <label class="switch">
+                    <input type="checkbox" id="enable-description-changes" name="enable-description-changes">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label">Enable Description Changes</span>
+            </div>
+            <div>
+                <button class="medium-font" type="submit">Save Preferences</button>
+            </div>
+            <div>
+                <button class="medium-font" type="button" id="delete-account">Delete Account</button>
+            </div>
+        </form>
     </main>
 
     <footer>
         <img src="\images\strava\powered by Strava\pwrdBy_strava_light\api_logo_pwrdBy_strava_stack_light.png" alt="Powered By Strava"img>
-        <p>&copy; 2023 milestone. All rights reserved.</p>
+        <p class="medium-font">&copy; 2023 milestone. All rights reserved.</p>
     </footer>
 </body>
     <script src="js/main.js"></script>

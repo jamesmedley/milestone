@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", async function() {
     try {
         const userID = await getSessionUID();
-        const userData = await getUserData(userID); 
+        const userData = await getUserData(userID);
         const userName = userData.athleteName;
         const userImageURL = userData.athletePFP;
 
@@ -17,10 +17,69 @@ document.addEventListener("DOMContentLoaded", async function() {
             userProfileImage.style.width = "150px";
             userProfileImage.style.height = "150px";
         }
+
+        const enableDescriptionChangesToggle = document.getElementById("enable-description-changes");
+        enableDescriptionChangesToggle.checked = userData.enableDescriptionChanges;
+        const editRunsCheck = document.getElementById("edit-runs");
+        editRunsCheck.checked = userData.enableRunDescription;
+        const editRidesCheck = document.getElementById("edit-bike-rides");
+        editRidesCheck.checked = userData.enableBikeDescription;
+
+        const preferencesForm = document.getElementById("preferences-form");
+        const deleteAccountButton = document.getElementById("delete-account");
+
+        preferencesForm.addEventListener("submit", handlePreferencesSubmit);
+        deleteAccountButton.addEventListener("click", handleDeleteAccountClick);
     } catch (error) {
         console.error('Error:', error);
     }
 });
+
+
+async function handlePreferencesSubmit(event) {
+    event.preventDefault();
+
+    const enableRunDescription = document.getElementById("edit-runs").checked;
+    const enableBikeDescription = document.getElementById("edit-bike-rides").checked;
+    const enableDescriptionChanges = document.getElementById("enable-description-changes").checked;
+    fetch('/api/save-preferences', {
+         method: 'POST',
+         headers: {
+             'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({ enableRunDescription, enableBikeDescription, enableDescriptionChanges }),
+     })
+     .then(response => {
+         if (!response.ok) {
+             throw new Error('Network response was not ok');
+         }     })
+     .catch(error => {
+         console.error('Error saving preferences:', error);
+     });
+}
+
+async function handleDeleteAccountClick() {
+    const confirmDelete = confirm("Are you sure you want to delete your account?");
+    if (confirmDelete) {
+        try {
+            const response = await fetch('/api/delete-account', {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            console.log("Account deleted");
+            window.location.href = '/';
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            throw error;
+        }
+    }
+}
+
+
 
 async function getSessionUID() {
     try {

@@ -112,3 +112,66 @@ footer {
     color: #fff;
     font-size: 14px;
 }
+
+
+
+.toggle-switch {
+    display: flex;
+    align-items: center;
+}
+
+
+.switch input[type="checkbox"] {
+    display: none;
+}
+
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    width: 60px;
+    height: 34px;
+    background-color: #ccc;
+    border-radius: 34px;
+    transition: background-color 0.4s, transform 0.4s; 
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.4s; 
+}
+
+.switch input:checked + .slider {
+    background-color: #2196F3; 
+}
+
+.switch input:checked + .slider:before {
+    transform: translateX(26px); 
+}
+
+.switch input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+
+.toggle-label {
+    margin-left: 10px; 
+    font-family: 'IBMPlexSans', sans-serif;
+}
+
