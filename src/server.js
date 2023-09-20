@@ -380,23 +380,33 @@ app.post('/api/save-preferences', checkStravaAuth, (req, res) =>{
 });
 
 
-app.delete('/api/delete-account', checkStravaAuth, (req, res) => {
+app.delete('/api/delete-account', checkStravaAuth, async (req, res) => {
   const athleteID = req.session.athleteID;
   const userRef = admin.database().ref(`/users/${athleteID}`);
-  userRef.remove()
-      .then(() => {
-          req.session.destroy(err => {
-              if (err) {
-                  console.error('Error destroying session:', err);
-                  return res.status(500).json({ error: 'Internal Server Error' });
-              }
-              res.sendStatus(204);
-          });
-      })
-      .catch(error => {
-          console.error('Error deleting account:', error);
-          return res.status(500).json({ error: 'Internal Server Error' });
-      });
+  
+  try {
+    const snapshot = await userRef.once('value');
+    const userData = snapshot.val();
+    const accessToken = userData.accessToken;
+
+    const deauthorizeUrl = `https://www.strava.com/oauth/deauthorize?access_token=${accessToken}`;
+    const deauthorizeResponse = await fetch(deauthorizeUrl, { method: 'POST' });
+    if (!deauthorizeResponse.ok) {
+      console.error('Deauthorization request failed:', deauthorizeResponse.statusText);
+    }
+    await userRef.remove();
+    req.session.destroy(err => {
+      if (err) {
+        console.error('Error destroying session:', err);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      }
+
+      res.sendStatus(204);
+    });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 
@@ -454,12 +464,12 @@ app.get('/exchange_token', async (req, res) => {
       const athletePFP = data.athlete.profile;
       const enableDescriptionChanges = true;
       const enableRunDescription = false;
-      const enableBikeDescription = false;
+      const enableBikeDescription = true;
       req.session.athleteID = athleteID;
 
       const userRef = admin.database().ref(`/users/${athleteID}`);
       const snapshot = await userRef.once('value');
-      const userData = snapshot.val();
+      const userData = snapshot.val() || {}; 
       
       if (!userData.enableDescriptionChanges) {
         userData.enableDescriptionChanges = enableDescriptionChanges;
