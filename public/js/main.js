@@ -6,29 +6,47 @@ document.addEventListener("DOMContentLoaded", async function() {
         const userImageURL = userData.athletePFP;
 
         const userGreeting = document.getElementById("user-greeting");
-        const userProfileImage = document.getElementById("user-profile-image");
+        const userProfileImageLink = document.getElementById("user-profile-link"); 
 
         if (userGreeting && userName) {
             userGreeting.textContent = `Hello, ${userName}`;
         }
-        if (userProfileImage && userImageURL) {
+        if (userProfileImageLink && userImageURL) {
+            userProfileImageLink.href = `https://www.strava.com/athletes/${userID}`;
+            const userProfileImage = document.getElementById("user-profile-image");
             userProfileImage.src = userImageURL;
             userProfileImage.style.borderRadius = "50%";
             userProfileImage.style.width = "150px";
             userProfileImage.style.height = "150px";
+           
         }
 
         const enableDescriptionChangesToggle = document.getElementById("enable-description-changes");
-        enableDescriptionChangesToggle.checked = userData.enableDescriptionChanges;
-        const editRunsCheck = document.getElementById("edit-runs");
-        editRunsCheck.checked = userData.enableRunDescription;
         const editRidesCheck = document.getElementById("edit-bike-rides");
+        const editRunsCheck = document.getElementById("edit-runs");
+
+        enableDescriptionChangesToggle.checked = userData.enableDescriptionChanges;
         editRidesCheck.checked = userData.enableBikeDescription;
+        editRunsCheck.checked = userData.enableRunDescription;
+        editRunsCheck.disabled = !enableDescriptionChangesToggle.checked;
+        editRidesCheck.disabled = !enableDescriptionChangesToggle.checked;
+        
+        enableDescriptionChangesToggle.addEventListener("change", async function () {
+            editRunsCheck.disabled = !enableDescriptionChangesToggle.checked;
+            editRidesCheck.disabled = !enableDescriptionChangesToggle.checked;
+            await preferencesSubmit();
+        });
 
-        const preferencesForm = document.getElementById("preferences-form");
+        editRidesCheck.addEventListener("change", async function () {
+            await preferencesSubmit();
+        });
+
+        editRunsCheck.addEventListener("change", async function () {
+            await preferencesSubmit();
+        });
+
         const deleteAccountButton = document.getElementById("delete-account");
-
-        preferencesForm.addEventListener("submit", handlePreferencesSubmit);
+        
         deleteAccountButton.addEventListener("click", handleDeleteAccountClick);
     } catch (error) {
         console.error('Error:', error);
@@ -36,27 +54,37 @@ document.addEventListener("DOMContentLoaded", async function() {
 });
 
 
-async function handlePreferencesSubmit(event) {
-    event.preventDefault();
-
+async function preferencesSubmit() {
     const enableRunDescription = document.getElementById("edit-runs").checked;
     const enableBikeDescription = document.getElementById("edit-bike-rides").checked;
     const enableDescriptionChanges = document.getElementById("enable-description-changes").checked;
+  
     fetch('/api/save-preferences', {
-         method: 'POST',
-         headers: {
-             'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({ enableRunDescription, enableBikeDescription, enableDescriptionChanges }),
-     })
-     .then(response => {
-         if (!response.ok) {
-             throw new Error('Network response was not ok');
-         }     })
-     .catch(error => {
-         console.error('Error saving preferences:', error);
-     });
-}
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ enableRunDescription, enableBikeDescription, enableDescriptionChanges }),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        showConfirmationPopup();
+      })
+      .catch(error => {
+        console.error('Error saving preferences:', error);
+      });
+  }
+  
+function showConfirmationPopup() {
+    const popup = document.getElementById("confirmation-popup");
+      popup.classList.add("slide-in");
+      setTimeout(() => {
+      popup.classList.remove("slide-in");
+    }, 2000);
+  }
+  
 
 async function handleDeleteAccountClick() {
     const confirmDelete = confirm("Are you sure you want to delete your account?");
