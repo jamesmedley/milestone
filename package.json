@@ -10,7 +10,7 @@
   },
   "name": "milestone",
   "version": "1.0.0",
-  "main": "public/js/main.js",
+  "main": "src/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
