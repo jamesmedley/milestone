@@ -124,7 +124,7 @@ async function viewStravaWebhooks(){
 
 async function createStravaWebhook() {
   const subscriptionUrl = 'https://www.strava.com/api/v3/push_subscriptions';
-  const callbackUrl = 'https://6fc5-92-233-11-177.ngrok.io/webhook'; //temporary ngrok public domain
+  const callbackUrl = 'https://milestone-br7c.onrender.com/webhook'; //temporary ngrok public domain
   await viewStravaWebhooks()
   await deleteStravaWebhook(process.env.WEBHOOK_ID)
   const requestOptions = {
@@ -271,7 +271,7 @@ async function updateDescription(activity_id, athlete_id, bike){
     const userData = snapshot.val();
     const refresh_token = userData.refreshToken;
     const distance = bike ? await getOverallRideDistance(athlete_id) : await getOverallRunDistance(athlete_id);
-    const city_api_url = `http://localhost:3000/api/city-separation-distance?distance=${distance}`;
+    const city_api_url = `https://milestone-br7c.onrender.com/api/city-separation-distance?distance=${distance}`;
     try {
       const response = await fetch(city_api_url, {
         method: 'GET',
@@ -431,7 +431,7 @@ app.get('/strava-auth', (req, res) =>{
   if(req.session && req.session.athleteID){
     res.redirect('/dashboard');
   }else{
-    const stravaAuthUrl = `http://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=http://localhost:3000/exchange_token&approval_prompt=force&scope=read,activity:write,activity:read`;
+    const stravaAuthUrl = `http://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=https://milestone-br7c.onrender.com/exchange_token&approval_prompt=force&scope=read,activity:write,activity:read`;
     res.redirect(stravaAuthUrl);
   }
 });
