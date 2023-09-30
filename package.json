@@ -11,9 +11,11 @@
   "name": "milestone",
   "version": "1.0.0",
   "main": "src/server.js",
+  "engines":{
+    "node":"16.x"
+  },
   "scripts": {
     "start": "node src/server.js",
-    "build": "echo 'No build step required'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
