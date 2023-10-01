@@ -64,7 +64,7 @@ async function find_closest_match(distance) {
         await client.connect();
 
         const database = client.db('milestone');
-        const collection = database.collection('city-distances');
+        const collection = database.collection('cities-distances');
         const queryValue = distance;
 
         const result = await collection
@@ -72,7 +72,6 @@ async function find_closest_match(distance) {
             .sort({ distance: 1 })
             .limit(1)
             .toArray();
-
         return result;
     } finally {
         await client.close();
