@@ -282,7 +282,7 @@ async function updateDescription(activity_id, athlete_id, bike){
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + process.env.CITY_SEP_APIKEY
+          'Authorization': `Bearer ${process.env.CITY_SEP_APIKEY}`  
         },
       });
       if (response.ok) {
