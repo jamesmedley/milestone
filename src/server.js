@@ -50,15 +50,15 @@ const runningDescriptions = runningDescriptionsData.descriptions;
 
 //connect to cities db
 const { MongoClient } = require('mongodb');
-const uri = 'mongodb://localhost:27017'; //heroku PaaS
+const uri = `mongodb+srv://jamesmedley00:${process.env.MONGODB_PASSWORD}@milestone.abntden.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri);
 
 async function find_closest_match(distance) {
     try {
         await client.connect();
 
-        const database = client.db('city_distances');
-        const collection = database.collection('strava-distances-comparison');
+        const database = client.db('milestone');
+        const collection = database.collection('city-distances');
         const queryValue = distance;
 
         const result = await collection
