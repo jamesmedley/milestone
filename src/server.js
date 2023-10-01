@@ -6,7 +6,7 @@ const strava_api = require('./strava_api.js');
 var admin = require("firebase-admin");
 const firebase = require('firebase');
 const express = require('express');
-const session = require('express-session');
+const session = require('cookie-session');
 
 const app = express();
 const port = process.env.PORT || 3000;
