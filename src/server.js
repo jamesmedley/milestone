@@ -282,6 +282,7 @@ async function updateDescription(activity_id, athlete_id, bike){
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + process.env.CITY_SEP_APIKEY
         },
       });
       if (response.ok) {
@@ -310,16 +311,32 @@ async function updateDescription(activity_id, athlete_id, bike){
 }
 
 
+function isValidApiKey(apiKey) {
+  const validKey = process.env.CITY_SEP_APIKEY;
+  return validKey == apiKey;
+}
+
+
 app.get('/api/city-separation-distance', async (req, res) => {
-    const { distance } = req.query;
+  const { apiKey } = req.headers;
+
+  if (!apiKey) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  if (isValidApiKey(apiKey)) {
     try {
+      const { distance } = req.query;
       const result = await find_closest_match(Number(distance));
       res.json(result);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Internal server error' });
     }
+  } else {
+    res.status(401).json({ error: 'Invalid API Key' });
+  }
 });
+
 
 
 app.get('/api/session', checkStravaAuth, (req, res) => {
