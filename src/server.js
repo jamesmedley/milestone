@@ -49,9 +49,15 @@ const runningDescriptions = runningDescriptionsData.descriptions;
 
 
 //connect to cities db
-const { MongoClient } = require('mongodb');
-const uri = `mongodb+srv://jamesmedley00:${process.env.MONGODB_PASSWORD}@milestone.abntden.mongodb.net/?retryWrites=true&w=majority`;
-const client = new MongoClient(uri);
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const uri = `mongodb+srv://jamesmedley00:${encodeURIComponent(process.env.MONGODB_PASSWORD)}@milestone.abntden.mongodb.net/?retryWrites=true&w=majority`;
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
 
 async function find_closest_match(distance) {
     try {
