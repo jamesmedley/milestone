@@ -6,7 +6,7 @@ const strava_api = require('./strava_api.js');
 var admin = require("firebase-admin");
 const firebase = require('firebase');
 const express = require('express');
-const session = require('cookie-session');
+const session = require('express-session');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -282,7 +282,7 @@ async function updateDescription(activity_id, athlete_id, bike){
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.CITY_SEP_APIKEY}`  
+          'Authorization': process.env.CITY_SEP_APIKEY  
         },
       });
       if (response.ok) {
@@ -318,12 +318,12 @@ function isValidApiKey(apiKey) {
 
 
 app.get('/api/city-separation-distance', async (req, res) => {
-  const { apiKey } = req.headers;
-
-  if (!apiKey) {
+  const { authorization } = req.headers;
+  console.log(req.headers)
+  if (!authorization) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  if (isValidApiKey(apiKey)) {
+  if (isValidApiKey(authorization)) {
     try {
       const { distance } = req.query;
       const result = await find_closest_match(Number(distance));
