@@ -89,8 +89,24 @@ async function updateDescription(refresh_token, activity_id, description){
         });
         const data = await response.json();
         const activity_link = `https://www.strava.com/api/v3/activities/${activity_id}/`;
+        const activityResponse = await fetch(activity_link, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${data.access_token}`
+            }
+        });
+
+        if (!activityResponse.ok) {
+            throw new Error('Failed to fetch activity data');
+        }
+
+        const activityData = await activityResponse.json();
+
+        const currentDescription = activityData.description || '';
+        const updatedDescription = `${currentDescription}\n${newDescription}`;
+        
         const updatableActivity = {
-            description: description
+            description: updatedDescription
         };
         try {
             const response = await fetch(activity_link, {
