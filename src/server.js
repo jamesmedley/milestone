@@ -506,15 +506,17 @@ app.get('/exchange_token', async (req, res) => {
       if (!userData.enableBikeDescription) {
         userData.enableBikeDescription = enableBikeDescription;
       }
-
-      await userRef.set({
-        ...userData, 
+      
+      await userRef.update({
         accessToken,
         refreshToken,
         athleteID,
         athleteUsername,
         athleteName,
         athletePFP,
+        enableDescriptionChanges: userData.enableDescriptionChanges,
+        enableRunDescription: userData.enableRunDescription,
+        enableBikeDescription: userData.enableBikeDescription,
       });
       res.redirect('/dashboard');
     } else {
