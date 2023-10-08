@@ -488,23 +488,23 @@ app.get('/exchange_token', async (req, res) => {
       const athleteUsername = data.athlete.username;
       const athleteName = data.athlete.firstname;
       const athletePFP = data.athlete.profile;
-      const enableDescriptionChanges = true;
-      const enableRunDescription = false;
-      const enableBikeDescription = true;
+      const descriptionChanges = true;
+      const runDescriptions = false;
+      const bikeDescriptions = true;
       req.session.athleteID = athleteID;
 
       const userRef = admin.database().ref(`/users/${athleteID}`);
       const snapshot = await userRef.once('value');
       const userData = snapshot.val() || {}; 
       
-      if (!userData.enableDescriptionChanges) {
-        userData.enableDescriptionChanges = enableDescriptionChanges;
+      if (userData.enableDescriptionChanges === undefined) {
+        userData.enableDescriptionChanges = descriptionChanges;
       }
-      if (!userData.enableRunDescription) {
-        userData.enableRunDescription = enableRunDescription;
+      if (userData.enableDescriptionChanges === undefined) {
+        userData.enableRunDescription = runDescriptions;
       }
-      if (!userData.enableBikeDescription) {
-        userData.enableBikeDescription = enableBikeDescription;
+      if (userData.enableBikeDescription === undefined) {
+        userData.enableBikeDescription = bikeDescriptions;
       }
       
       await userRef.update({
