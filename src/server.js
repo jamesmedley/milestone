@@ -42,9 +42,9 @@ firebase.initializeApp(firebaseConfig);
 
 
 //load activity descriptions
-const cyclingDescriptionsData = JSON.parse(fs.readFileSync('cycling-descriptions.json', 'utf8'))
+const cyclingDescriptionsData = JSON.parse(fs.readFileSync('resources/cycling-descriptions.json', 'utf8'))
 const cyclingDescriptions = cyclingDescriptionsData.descriptions;
-const runningDescriptionsData = JSON.parse(fs.readFileSync('running-descriptions.json', 'utf8'))
+const runningDescriptionsData = JSON.parse(fs.readFileSync('resources/running-descriptions.json', 'utf8'))
 const runningDescriptions = runningDescriptionsData.descriptions;
 
 
@@ -118,7 +118,6 @@ async function viewStravaWebhooks(){
     if (response.ok) {
       const responseData = await response.json();
       console.log('Webhook subscriptions successfully received:');
-      console.log(responseData);
     } else {
       console.error('Failed to retrieve webhook subscriptions:', response.statusText);
     }
@@ -319,7 +318,6 @@ function isValidApiKey(apiKey) {
 
 app.get('/api/city-separation-distance', async (req, res) => {
   const { authorization } = req.headers;
-  console.log(req.headers)
   if (!authorization) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
