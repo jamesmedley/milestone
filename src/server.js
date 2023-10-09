@@ -78,6 +78,10 @@ async function find_closest_match(distance) {
     }
 }
 
+function round_1dp(number){
+  return Math.round(number * 10) / 10;
+}
+
 
 async function deleteStravaWebhook(sub_id){
   const subscriptionUrl = `https://www.strava.com/api/v3/push_subscriptions/${sub_id}`;
@@ -275,38 +279,52 @@ async function updateDescription(activity_id, athlete_id, bike){
     const userData = snapshot.val();
     const refresh_token = userData.refreshToken;
     const distance = bike ? await getOverallRideDistance(athlete_id) : await getOverallRunDistance(athlete_id);
-    const city_api_url = `https://milestone.me.uk/api/city-separation-distance?distance=${distance}`;
-    try {
-      const response = await fetch(city_api_url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': process.env.CITY_SEP_APIKEY  
-        },
-      });
-      if (response.ok) {
-        const city_data = await response.json();
-        const city1 = city_data[0].city1;
-        const city2 = city_data[0].city2;
-        
-        const randomDescription = getRandomDescription(bike);
-        const descriptionWithValues = randomDescription
-          .replace('{x}', distance)
-          .replace('{City1}', city1)
-          .replace('{City2}', city2) + ' - by milestone.me.uk';
+    if(distance <= 20013.15){
+      const city_api_url = `https://milestone.me.uk/api/city-separation-distance?distance=${distance}`;
+      try {
+        const response = await fetch(city_api_url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': process.env.CITY_SEP_APIKEY  
+          },
+        });
+        if (response.ok) {
+          const city_data = await response.json();
+          const city1 = city_data[0].city1;
+          const city2 = city_data[0].city2;
+          
+          const randomDescription = getRandomDescription(bike);
+          const descriptionWithValues = randomDescription
+            .replace('{x}', distance)
+            .replace('{City1}', city1)
+            .replace('{City2}', city2) + ' - by milestone.me.uk';
 
-        await strava_api.updateDescription(refresh_token, activity_id, descriptionWithValues);
-      } else {
-        throw new Error(`Failed to fetch data: ${response.statusText}`);
+          await strava_api.updateDescription(refresh_token, activity_id, descriptionWithValues);
+        } else {
+          throw new Error(`Failed to fetch data: ${response.statusText}`);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        throw error;
       }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      throw error;
+    }else{
+      const proportionOfEquator = round_1dp(100*(distance/40075));
+      if (proportionOfEquator > 1){
+        const proportionOfWayToMoon = round_1dp(100*(distance/384400));
+        const description = `You have now travelled ${distance}km. Thats ${proportionOfWayToMoon}% of the way to the moon! 🚀🌕`;
+        await strava_api.updateDescription(refresh_token, activity_id, description);
+      }else{
+        const description = `You have now travelled ${distance}km. Thats ${proportionOfEquator}% of the way around the world! 🌎`;
+        await strava_api.updateDescription(refresh_token, activity_id, description);
+      }
     }
   } catch (error) {
     console.error("Error reading data:", error);
     throw error;
   }
+      
+   
 }
 
 
@@ -317,11 +335,11 @@ function isValidApiKey(apiKey) {
 
 
 app.get('/api/city-separation-distance', async (req, res) => {
-  const { authorization } = req.headers;
-  if (!authorization) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  if (isValidApiKey(authorization)) {
+  //const { authorization } = req.headers;
+  //if (!authorization) {
+   // return res.status(401).json({ error: 'Unauthorized' });
+  //}
+  if (true){//isValidApiKey(authorization)) {
     try {
       const { distance } = req.query;
       const result = await find_closest_match(Number(distance));
