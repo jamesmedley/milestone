@@ -335,11 +335,11 @@ function isValidApiKey(apiKey) {
 
 
 app.get('/api/city-separation-distance', async (req, res) => {
-  //const { authorization } = req.headers;
-  //if (!authorization) {
-   // return res.status(401).json({ error: 'Unauthorized' });
-  //}
-  if (true){//isValidApiKey(authorization)) {
+  const { authorization } = req.headers;
+  if (!authorization) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  if (isValidApiKey(authorization)) {
     try {
       const { distance } = req.query;
       const result = await find_closest_match(Number(distance));
