@@ -464,6 +464,11 @@ app.get('/dashboard', checkStravaAuth,(req, res) => {
     res.sendFile(dashboardPath);
 });
 
+app.get('/privacy-policy', (req, res) => {
+  const ppPath = path.join(__dirname, '..', 'public', 'privacy_policy.html');
+  res.sendFile(ppPath);
+});
+
 
 app.get('/strava-auth', (req, res) =>{
   if(req.session && req.session.athleteID){
