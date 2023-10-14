@@ -448,7 +448,6 @@ app.delete('/api/delete-account', checkStravaAuth, async (req, res) => {
 });
 
 
-
 function checkStravaAuth(req, res, next) {
   const athleteID = req.session.athleteID;
   if (athleteID) {
