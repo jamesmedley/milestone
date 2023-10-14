@@ -1,3 +1,82 @@
+$(function () {
+    $(".mapcontainer").mapael({
+        map: {
+            name: "world_countries",
+            defaultArea: {
+                attrs: {
+                    fill: "#fff",
+                    stroke: "#3b3b3b"
+                },
+                attrsHover: {
+                    stroke: "#f98e54"
+                }
+            },
+            defaultLink: {
+                factor: 0.2,
+                attrs: {
+                    "stroke-width": 7,
+                    "stroke-linecap": "round",
+                    stroke:"#ff0000",
+                    "stroke-opacity":1
+                },
+                attrsHover: {
+                    stroke: "#f98e54"
+                }
+            },
+            defaultPlot: {
+                text: {
+                    attrs: {
+                        fill: "#000"
+                    },
+                    attrsHover: {
+                        fill: "#000"
+                    }
+                }
+            }
+        },
+        plots: {
+            'plot1': {
+                latitude: 51.3781,
+                longitude: -2.3597,
+                size: 10,
+                text: {
+                    content: 'Bath', 
+                    position: 'left', 
+                    margin: 5, 
+                    attrs:{
+                        fill:"#ff0000",
+                        "font-size":20,
+                        "font-family":'IBMPlexSans'
+                    },
+                }
+            },
+            'plot2': {
+                latitude: -37.8136,
+                longitude: 144.9631,
+                size: 10,
+                text: {
+                    content: 'Melbourne', 
+                    position: 'left', 
+                    margin: 5, 
+                    attrs:{
+                        fill:"#ff0000",
+                        "font-size":20,
+                        "font-family":'IBMPlexSans'
+                    },
+                }
+            }
+        },
+        links: {
+            'testplot1': {
+                between: ['plot1', 'plot2']
+                , attrs: {
+                }
+                , tooltip: {content: "Bath - Melbourne"}
+            }
+        }
+    });
+});
+
 document.addEventListener("DOMContentLoaded", async function() {
     try {
         const userID = await getSessionUID();

@@ -473,7 +473,7 @@ app.get('/strava-auth', (req, res) =>{
   if(req.session && req.session.athleteID){
     res.redirect('/dashboard');
   }else{
-    const stravaAuthUrl = `http://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=https://milestone.me.uk/exchange_token&approval_prompt=force&scope=read,activity:write,activity:read`;
+    const stravaAuthUrl = `http://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=http://localhost:3000/exchange_token&approval_prompt=force&scope=read,activity:write,activity:read`;
     res.redirect(stravaAuthUrl);
   }
 });
