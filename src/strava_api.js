@@ -103,8 +103,12 @@ async function updateDescription(refresh_token, activity_id, description){
         const activityData = await activityResponse.json();
 
         const currentDescription = activityData.description || '';
-        const updatedDescription = `${currentDescription}\n${description}`;
-        
+        let updatedDescription = null;
+        if(currentDescription != ''){
+            updatedDescription = `${currentDescription}\n${description}`;
+        }else{
+            updatedDescription = description;
+        }
         const updatableActivity = {
             description: updatedDescription
         };
