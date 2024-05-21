@@ -136,7 +136,6 @@ async function updateDescription(refresh_token, activity_id, description) {
 
 async function updateActivityType(refresh_token, activity_id, newType) {
     try {
-        // Re-authorize and get a new access token
         const response = await fetch(auth_link, {
             method: 'post',
             headers: {
@@ -144,8 +143,8 @@ async function updateActivityType(refresh_token, activity_id, newType) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                client_id: CLIENT_ID,
-                client_secret: CLIENT_SECRET,
+                client_id: process.env.CLIENT_ID,
+                client_secret: process.env.CLIENT_SECRET,
                 refresh_token: refresh_token,
                 grant_type: 'refresh_token'
             })
