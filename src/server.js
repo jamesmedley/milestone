@@ -234,6 +234,20 @@ async function isRun(activity_id, athlete_id) {
   }
 }
 
+async function isWorkout(activity_id, athlete_id) {
+  const userRef = admin.database().ref(`/users/${athlete_id}`);
+  try {
+    const snapshot = await userRef.once("value");
+    const userData = snapshot.val();
+    const refresh_token = userData.refreshToken;
+    const type = await strava_api.getActivityType(refresh_token, activity_id);
+    return type == "Workout";
+  } catch (error) {
+    console.error("Error reading data:", error);
+    throw error;
+  }
+}
+
 
 async function getOverallRideDistance(athlete_id) {
   const userRef = admin.database().ref(`/users/${athlete_id}`);
@@ -574,7 +588,7 @@ app.post('/webhook', async (req, res) => {
     if (await isRun(activity_id, athlete_id) && await isEnableRunDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)) {
       await updateDescription(activity_id, athlete_id, false);
     }
-    if (await isCardio(activity_id, athlete_id) && athlete_id == 63721242) {
+    if (await isWorkout(activity_id, athlete_id) && athlete_id == 63721242) {
       await updateActivityType(activity_id, athlete_id, "WeightTraining");
     }
   }
