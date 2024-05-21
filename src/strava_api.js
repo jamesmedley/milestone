@@ -30,7 +30,7 @@ async function getAthleteRideTotal(refresh_token, athlete_id) {
             console.error('Error getting athlete ride total:', error);
             throw error;
         }
-        
+
     } catch (error) {
         console.error('Error re-authorizing:', error);
         throw error;
@@ -64,7 +64,7 @@ async function getAthleteRunTotal(refresh_token, athlete_id) {
             console.error('Error getting athlete ride total:', error);
             throw error;
         }
-        
+
     } catch (error) {
         console.error('Error re-authorizing:', error);
         throw error;
@@ -72,7 +72,7 @@ async function getAthleteRunTotal(refresh_token, athlete_id) {
 }
 
 
-async function updateDescription(refresh_token, activity_id, description){
+async function updateDescription(refresh_token, activity_id, description) {
     try {
         const response = await fetch(auth_link, {
             method: 'post',
@@ -104,9 +104,9 @@ async function updateDescription(refresh_token, activity_id, description){
 
         const currentDescription = activityData.description || '';
         let updatedDescription = null;
-        if(currentDescription != ''){
+        if (currentDescription != '') {
             updatedDescription = `${currentDescription}\n${description}`;
-        }else{
+        } else {
             updatedDescription = description;
         }
         const updatableActivity = {
@@ -114,19 +114,19 @@ async function updateDescription(refresh_token, activity_id, description){
         };
         try {
             const response = await fetch(activity_link, {
-                method: 'PUT',   
+                method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${data.access_token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(updatableActivity) 
+                body: JSON.stringify(updatableActivity)
             });
             console.log("Activity description updated.")
         } catch (error) {
             console.error('Error updating activity description:', error);
             throw error;
         }
-        
+
     } catch (error) {
         console.error('Error re-authorizing:', error);
         throw error;
@@ -134,7 +134,71 @@ async function updateDescription(refresh_token, activity_id, description){
 }
 
 
-async function getActivityType(refresh_token, activity_id){
+async function updateActivityType(refresh_token, activity_id, newType) {
+    try {
+        // Re-authorize and get a new access token
+        const response = await fetch(auth_link, {
+            method: 'post',
+            headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                refresh_token: refresh_token,
+                grant_type: 'refresh_token'
+            })
+        });
+
+        const data = await response.json();
+        const activity_link = `https://www.strava.com/api/v3/activities/${activity_id}`;
+
+        const activityResponse = await fetch(activity_link, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${data.access_token}`
+            }
+        });
+
+        if (!activityResponse.ok) {
+            throw new Error('Failed to fetch activity data');
+        }
+
+        const activityData = await activityResponse.json();
+
+        const updatableActivity = {
+            type: newType
+        };
+
+        try {
+            const updateResponse = await fetch(activity_link, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${data.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updatableActivity)
+            });
+
+            if (!updateResponse.ok) {
+                throw new Error('Failed to update activity type');
+            }
+
+            console.log(`Activity ${activity_id} type updated to ${newType}.`);
+        } catch (error) {
+            console.error('Error updating activity type:', error);
+            throw error;
+        }
+
+    } catch (error) {
+        console.error('Error re-authorizing:', error);
+        throw error;
+    }
+}
+
+
+async function getActivityType(refresh_token, activity_id) {
     try {
         const response = await fetch(auth_link, {
             method: 'post',
@@ -153,7 +217,7 @@ async function getActivityType(refresh_token, activity_id){
         const activity_link = `https://www.strava.com/api/v3/activities/${activity_id}?include_all_efforts=False`;
         try {
             const response = await fetch(activity_link, {
-                method: 'GET',   
+                method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${data.access_token}`,
                     'Content-Type': 'application/json'
@@ -167,7 +231,7 @@ async function getActivityType(refresh_token, activity_id){
             console.error('Error getting activity:', error);
             throw error;
         }
-        
+
     } catch (error) {
         console.error('Error re-authorizing:', error);
         throw error;
@@ -179,5 +243,6 @@ module.exports = {
     getAthleteRideTotal,
     getAthleteRunTotal,
     updateDescription,
+    updateActivityType,
     getActivityType
 };

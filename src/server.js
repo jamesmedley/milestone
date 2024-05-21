@@ -60,30 +60,30 @@ const client = new MongoClient(uri, {
 });
 
 async function find_closest_match(distance) {
-    try {
-        await client.connect();
+  try {
+    await client.connect();
 
-        const database = client.db('milestone');
-        const collection = database.collection('cities-distances');
-        const queryValue = distance;
+    const database = client.db('milestone');
+    const collection = database.collection('cities-distances');
+    const queryValue = distance;
 
-        const result = await collection
-            .find({ distance: { $gte: queryValue } })
-            .sort({ distance: 1 })
-            .limit(1)
-            .toArray();
-        return result;
-    } finally {
-        await client.close();
-    }
+    const result = await collection
+      .find({ distance: { $gte: queryValue } })
+      .sort({ distance: 1 })
+      .limit(1)
+      .toArray();
+    return result;
+  } finally {
+    await client.close();
+  }
 }
 
-function round_1dp(number){
+function round_1dp(number) {
   return Math.round(number * 10) / 10;
 }
 
 
-async function deleteStravaWebhook(sub_id){
+async function deleteStravaWebhook(sub_id) {
   const subscriptionUrl = `https://www.strava.com/api/v3/push_subscriptions/${sub_id}`;
   const requestOptions = {
     method: 'DELETE',
@@ -109,7 +109,7 @@ async function deleteStravaWebhook(sub_id){
 }
 
 
-async function viewStravaWebhooks(){
+async function viewStravaWebhooks() {
   const subscriptionUrl = `https://www.strava.com/api/v3/push_subscriptions/?client_id=${process.env.CLIENT_ID}&client_secret=${process.env.CLIENT_SECRET}`;
   const requestOptions = {
     method: 'GET',
@@ -164,48 +164,48 @@ async function createStravaWebhook() {
 //createStravaWebhook(); // create strava webhook
 
 
-async function isEnableBikeDescription(athleteID){
+async function isEnableBikeDescription(athleteID) {
   const userRef = admin.database().ref(`/users/${athleteID}`);
-  try{
+  try {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
     const enableBikeDescription = userData.enableBikeDescription;
     return enableBikeDescription;
-  }catch{
+  } catch {
     console.error("Error reading data:", error);
     throw error;
   }
 }
 
 
-async function isEnableRunDescription(athleteID){
+async function isEnableRunDescription(athleteID) {
   const userRef = admin.database().ref(`/users/${athleteID}`);
-  try{
+  try {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
     const enableRunDescription = userData.enableRunDescription;
     return enableRunDescription;
-  }catch{
+  } catch {
     console.error("Error reading data:", error);
     throw error;
   }
 }
 
 
-async function isEnableDescriptionChanges(athleteID){
+async function isEnableDescriptionChanges(athleteID) {
   const userRef = admin.database().ref(`/users/${athleteID}`);
-  try{
+  try {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
     const enableDescriptionChanges = userData.enableDescriptionChanges;
     return enableDescriptionChanges;
-  }catch{
+  } catch {
     console.error("Error reading data:", error);
     throw error;
   }
 }
 
-async function isBikeRide(activity_id, athlete_id){
+async function isBikeRide(activity_id, athlete_id) {
   const userRef = admin.database().ref(`/users/${athlete_id}`);
   try {
     const snapshot = await userRef.once("value");
@@ -220,7 +220,7 @@ async function isBikeRide(activity_id, athlete_id){
 }
 
 
-async function isRun(activity_id, athlete_id){
+async function isRun(activity_id, athlete_id) {
   const userRef = admin.database().ref(`/users/${athlete_id}`);
   try {
     const snapshot = await userRef.once("value");
@@ -270,30 +270,41 @@ function getRandomDescription(bike) {
   return descriptions[randomIndex];
 }
 
+async function updateActivityType(activity_id, athlete_id, newType) {
+  const userRef = admin.database().ref(`/users/${athlete_id}`);
+  try {
+    const snapshot = await userRef.once("value");
+    const userData = snapshot.val();
+    const refresh_token = userData.refreshToken;
+    await strava_api.updateActivityType(refresh_token, activity_id, newType);
+  } catch (error) {
+    console.error("Updating activity type:", error);
+    throw error;
+  }
+}
 
-
-async function updateDescription(activity_id, athlete_id, bike){
+async function updateDescription(activity_id, athlete_id, bike) {
   const userRef = admin.database().ref(`/users/${athlete_id}`);
   try {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
     const refresh_token = userData.refreshToken;
     const distance = bike ? await getOverallRideDistance(athlete_id) : await getOverallRunDistance(athlete_id);
-    if(distance <= 20013.15){
+    if (distance <= 20013.15) {
       const city_api_url = `https://milestone.me.uk/api/city-separation-distance?distance=${distance}`;
       try {
         const response = await fetch(city_api_url, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': process.env.CITY_SEP_APIKEY  
+            'Authorization': process.env.CITY_SEP_APIKEY
           },
         });
         if (response.ok) {
           const city_data = await response.json();
           const city1 = city_data[0].city1;
           const city2 = city_data[0].city2;
-          
+
           const randomDescription = getRandomDescription(bike);
           const descriptionWithValues = randomDescription
             .replace('{x}', distance)
@@ -308,13 +319,13 @@ async function updateDescription(activity_id, athlete_id, bike){
         console.error('Error fetching data:', error);
         throw error;
       }
-    }else{
-      const proportionOfEquator = round_1dp(100*(distance/40075));
-      if (proportionOfEquator > 1){
-        const proportionOfWayToMoon = round_1dp(100*(distance/384400));
+    } else {
+      const proportionOfEquator = round_1dp(100 * (distance / 40075));
+      if (proportionOfEquator > 1) {
+        const proportionOfWayToMoon = round_1dp(100 * (distance / 384400));
         const description = `You have now travelled ${distance}km. Thats ${proportionOfWayToMoon}% of the way to the moon! 🚀🌕`;
         await strava_api.updateDescription(refresh_token, activity_id, description);
-      }else{
+      } else {
         const description = `You have now travelled ${distance}km. Thats ${proportionOfEquator}% of the way around the world! 🌎`;
         await strava_api.updateDescription(refresh_token, activity_id, description);
       }
@@ -323,8 +334,8 @@ async function updateDescription(activity_id, athlete_id, bike){
     console.error("Error reading data:", error);
     throw error;
   }
-      
-   
+
+
 }
 
 
@@ -361,10 +372,10 @@ app.get('/api/session', checkStravaAuth, (req, res) => {
 });
 
 
-app.get('/api/athlete-data', checkStravaAuth, async (req,res) =>{
+app.get('/api/athlete-data', checkStravaAuth, async (req, res) => {
   const athlete_id = req.query.athlete_id;
-  if(athlete_id != req.session.athleteID){
-    res.json({"Error":"Unauthorised"});
+  if (athlete_id != req.session.athleteID) {
+    res.json({ "Error": "Unauthorised" });
     return;
   }
   const userRef = admin.database().ref(`/users/${athlete_id}`);
@@ -389,13 +400,13 @@ app.get('/api/athlete-data', checkStravaAuth, async (req,res) =>{
     })
   } catch (error) {
     console.error("Error reading data:", error);
-    res.sendStatus(500); 
+    res.sendStatus(500);
   }
 })
 
 
-app.post('/api/save-preferences', checkStravaAuth, (req, res) =>{
-  try{
+app.post('/api/save-preferences', checkStravaAuth, (req, res) => {
+  try {
     const athleteID = req.session.athleteID;
     const userRef = admin.database().ref(`/users/${athleteID}`);
     const { enableRunDescription, enableBikeDescription, enableDescriptionChanges } = req.body;
@@ -404,13 +415,13 @@ app.post('/api/save-preferences', checkStravaAuth, (req, res) =>{
       enableBikeDescription,
       enableDescriptionChanges,
     })
-    .then(() => {
-      return res.status(200).json({ message: 'Preferences saved successfully' });
-    })
-    .catch(error => {
-      console.error('Error saving preferences:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    });
+      .then(() => {
+        return res.status(200).json({ message: 'Preferences saved successfully' });
+      })
+      .catch(error => {
+        console.error('Error saving preferences:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      });
   } catch (error) {
     console.error('Error saving preferences:', error);
     return res.status(500).json({ error: 'Internal Server Error' });
@@ -421,7 +432,7 @@ app.post('/api/save-preferences', checkStravaAuth, (req, res) =>{
 app.delete('/api/delete-account', checkStravaAuth, async (req, res) => {
   const athleteID = req.session.athleteID;
   const userRef = admin.database().ref(`/users/${athleteID}`);
-  
+
   try {
     const snapshot = await userRef.once('value');
     const userData = snapshot.val();
@@ -451,16 +462,16 @@ app.delete('/api/delete-account', checkStravaAuth, async (req, res) => {
 function checkStravaAuth(req, res, next) {
   const athleteID = req.session.athleteID;
   if (athleteID) {
-    next(); 
+    next();
   } else {
     res.redirect('/');
   }
 }
 
 
-app.get('/dashboard', checkStravaAuth,(req, res) => {
-    const dashboardPath = path.join(__dirname, '..', 'public', 'dashboard.html');
-    res.sendFile(dashboardPath);
+app.get('/dashboard', checkStravaAuth, (req, res) => {
+  const dashboardPath = path.join(__dirname, '..', 'public', 'dashboard.html');
+  res.sendFile(dashboardPath);
 });
 
 app.get('/privacy-policy', (req, res) => {
@@ -469,11 +480,11 @@ app.get('/privacy-policy', (req, res) => {
 });
 
 
-app.get('/strava-auth', (req, res) =>{
-  if(req.session && req.session.athleteID){
+app.get('/strava-auth', (req, res) => {
+  if (req.session && req.session.athleteID) {
     res.redirect('/dashboard');
-  }else{
-    const stravaAuthUrl = `http://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=https://milestone.me.uk/exchange_token&approval_prompt=force&scope=read,activity:write,activity:read`;
+  } else {
+    const stravaAuthUrl = `http://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=http://localhost:3000/exchange_token&approval_prompt=force&scope=read,activity:write,activity:read`;
     res.redirect(stravaAuthUrl);
   }
 });
@@ -515,8 +526,8 @@ app.get('/exchange_token', async (req, res) => {
 
       const userRef = admin.database().ref(`/users/${athleteID}`);
       const snapshot = await userRef.once('value');
-      const userData = snapshot.val() || {}; 
-      
+      const userData = snapshot.val() || {};
+
       if (userData.enableDescriptionChanges === undefined) {
         userData.enableDescriptionChanges = descriptionChanges;
       }
@@ -526,7 +537,7 @@ app.get('/exchange_token', async (req, res) => {
       if (userData.enableBikeDescription === undefined) {
         userData.enableBikeDescription = bikeDescriptions;
       }
-      
+
       await userRef.update({
         accessToken,
         refreshToken,
@@ -554,15 +565,18 @@ app.get('/exchange_token', async (req, res) => {
 app.post('/webhook', async (req, res) => {
   console.log("webhook event received!", req.query, req.body);
   res.status(200).send('EVENT_RECEIVED');
-  if(req.body.aspect_type == 'create' && req.body.object_type == 'activity'){
+  if (req.body.aspect_type == 'create' && req.body.object_type == 'activity') {
     const activity_id = req.body.object_id;
     const athlete_id = req.body.owner_id;
-    if(await isBikeRide(activity_id, athlete_id) && await isEnableBikeDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)){
+    if (await isBikeRide(activity_id, athlete_id) && await isEnableBikeDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)) {
       await updateDescription(activity_id, athlete_id, true);
-    }  
-    if(await isRun(activity_id, athlete_id) && await isEnableRunDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)){
+    }
+    if (await isRun(activity_id, athlete_id) && await isEnableRunDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)) {
       await updateDescription(activity_id, athlete_id, false);
-    } 
+    }
+    if (await isCardio(activity_id, athlete_id) && athlete_id == 63721242) {
+      await updateActivityType(activity_id, athlete_id, "WeightTraining");
+    }
   }
 })
 
@@ -577,17 +591,17 @@ app.get('/webhook', (req, res) => { // code from strava docs
   // Checks if a token and mode is in the query string of the request
   if (mode && token) {
     // Verifies that the mode and token sent are valid
-    if (mode === 'subscribe' && token === VERIFY_TOKEN) {     
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
       // Responds with the challenge token from the request
       console.log('WEBHOOK_VERIFIED');
-      res.json({"hub.challenge":challenge});  
+      res.json({ "hub.challenge": challenge });
     } else {
       // Responds with '403 Forbidden' if verify tokens do not match
-      res.sendStatus(403);      
+      res.sendStatus(403);
     }
   }
 });
-  
+
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
