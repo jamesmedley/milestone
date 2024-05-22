@@ -165,8 +165,9 @@ async function updateActivityType(refresh_token, activity_id, newType) {
         }
 
         const activityData = await activityResponse.json();
-
+        const currentName = activityData.name || '';
         const updatableActivity = {
+            name: currentName.replace('Workout', splitCamelCase(newType)),
             type: newType
         };
 
@@ -237,6 +238,9 @@ async function getActivityType(refresh_token, activity_id) {
     }
 }
 
+function splitCamelCase(string) {
+    return string.replace(/([a-z])([A-Z])/g, '$1 $2');
+}
 
 module.exports = {
     getAthleteRideTotal,
