@@ -1,7 +1,7 @@
 @font-face {
     font-family: 'IBMPlexSans';
     src: url('/fonts/IBMPlexSans-Regular.ttf') format('truetype');
-    font-weight: normal; 
+    font-weight: normal;
 }
 
 @font-face {
@@ -13,30 +13,44 @@
 @font-face {
     font-family: 'IBMPlexSans';
     src: url('/fonts/IBMPlexSans-Bold.ttf') format('truetype');
-    font-weight: bold; 
+    font-weight: bold;
 }
 
 @font-face {
     font-family: 'IBMPlexSans';
     src: url('/fonts/IBMPlexSans-Italic.ttf') format('truetype');
-    font-style: italic; 
+    font-style: italic;
 }
 
+h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
 
-.standard-font{
+h2 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+}
+
+p {
+    font-size: 1em;
+    margin-bottom: 10px;  
+}
+
+.standard-font {
     font-family: 'IBMPlexSans', sans-serif;
     font-weight: 500;
     text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.8);
 }
 
-.medium-font{
+.medium-font {
     font-family: 'IBMPlexSans', sans-serif;
     align-items: center;
     margin-bottom: 10px;
     text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.8);
 }
 
-.medium-font-no-shadow{
+.medium-font-no-shadow {
     font-family: 'IBMPlexSans', sans-serif;
     align-items: center;
     margin-bottom: 10px;
@@ -46,24 +60,24 @@
     margin-left: 10px;
 }
 
-.bold-font{
+.bold-font {
     font-family: 'IBMPlexSans', sans-serif;
     font-weight: bold;
     text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.8);
 }
 
-.bold-font-no-shadow{
+.bold-font-no-shadow {
     font-family: 'IBMPlexSans', sans-serif;
     font-weight: bold;
 }
 
-.italic-font{
+.italic-font {
     font-family: 'IBMPlexSans', sans-serif;
     font-style: italic;
     text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.8);
 }
 
-.bold-italic-font{
+.bold-italic-font {
     font-family: 'IBMPlexSans', sans-serif;
     font-style: italic;
     font-weight: bold;
@@ -81,25 +95,25 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    color:#fff
+    color: #fff
 }
 
 header {
     text-align: center;
     padding: 20px;
-    background-color: rgba(0, 0, 0, 0.3); 
+    background-color: rgba(0, 0, 0, 0.3);
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(249, 142, 84, 0.4));
     color: #fff;
 }
 
 header img {
-    width:50%;
+    width: 30%;
     height: auto;
 }
 
 main {
-    margin: 0 auto; 
-    max-width: 800px; 
+    margin: 0 auto;
+    max-width: 800px;
     padding: 20px;
     text-align: center;
     flex-grow: 1;
@@ -118,17 +132,17 @@ main {
     padding: 10px;
     transition: right 0.8s ease-in-out;
     z-index: 9999;
-  }
-  
+}
+
 .slide-in {
-    right: -4px; 
+    right: -4px;
 }
 
 #user-greeting {
     margin-bottom: 20px;
     margin-top: 0px;
-  }
-  
+}
+
 #user-profile-image {
     max-width: 200px;
     height: auto;
@@ -146,12 +160,12 @@ main {
 
 
 #delete-account {
-    background-color: #ff5555; 
-    color: #fff; 
-    padding: 10px 20px; 
-    border: none; 
-    border-radius: 5px; 
-    cursor: pointer; 
+    background-color: #ff5555;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
     transition: background-color 0.3s;
 }
 
@@ -164,14 +178,6 @@ main {
     margin-bottom: 40px;
 }
 
-.authentication-section h2 {
-    font-size: 32px;
-}
-
-.authentication-section p {
-    font-size: 20px;
-}
-
 .authentication-section a img {
     max-width: auto;
     height: auto;
@@ -182,18 +188,10 @@ main {
     margin-bottom: 40px;
 }
 
-.app-info h2 {
-    font-size: 32px;
-}
-
-.app-info p {
-    font-size: 20px;
-}
-
 footer {
     text-align: center;
     padding: 5px;
-    background: linear-gradient(to bottom, rgba(249, 142, 84, 0.4),rgba(0, 0, 0, 0.3));
+    background: linear-gradient(to bottom, rgba(249, 142, 84, 0.4), rgba(0, 0, 0, 0.3));
     color: #fff;
     font-size: 14px;
 }
@@ -225,7 +223,7 @@ footer {
     height: 34px;
     background-color: #093d65;
     border-radius: 34px;
-    transition: background-color 0.4s, transform 0.4s; 
+    transition: background-color 0.4s, transform 0.4s;
 }
 
 .slider:before {
@@ -237,24 +235,24 @@ footer {
     bottom: 4px;
     background-color: white;
     border-radius: 50%;
-    transition: transform 0.4s; 
+    transition: transform 0.4s;
 }
 
-.switch input:checked + .slider {
-    background-color: #f98e54; 
+.switch input:checked+.slider {
+    background-color: #f98e54;
 }
 
-.switch input:checked + .slider:before {
-    transform: translateX(26px); 
+.switch input:checked+.slider:before {
+    transform: translateX(26px);
 }
 
-.switch input:focus + .slider {
+.switch input:focus+.slider {
     box-shadow: 0 0 1px #f98e54;
 }
 
 
 .toggle-label {
-    margin-left: 10px; 
+    margin-left: 10px;
     font-family: 'IBMPlexSans', sans-serif;
     text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.8);
 }
@@ -262,7 +260,7 @@ footer {
 .content {
     padding: 20px;
     background-color: rgba(249, 142, 84, 0.4);
-    color:#ffffffd1;
+    color: #ffffffd1;
 }
 
 .custom-list {
@@ -275,28 +273,102 @@ footer {
     text-align: center;
     margin: 10px 0;
 }
+
 /* Scrollbar Track */
 ::-webkit-scrollbar {
-    width: 10px; /* Width of the scrollbar */
+    width: 10px;
+    /* Width of the scrollbar */
 }
 
 ::-webkit-scrollbar-track {
-    background: #f1f1f1; /* Background of the scrollbar track */
-    border-radius: 10px; /* Rounded corners of the track */
+    background: #f1f1f1;
+    /* Background of the scrollbar track */
+    border-radius: 10px;
+    /* Rounded corners of the track */
 }
 
 /* Scrollbar Handle */
 ::-webkit-scrollbar-thumb {
-    background: #888; /* Color of the scrollbar handle */
-    border-radius: 10px; /* Rounded corners of the handle */
+    background: #888;
+    /* Color of the scrollbar handle */
+    border-radius: 10px;
+    /* Rounded corners of the handle */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #555; /* Color of the scrollbar handle when hovered */
+    background: #555;
+    /* Color of the scrollbar handle when hovered */
 }
 
 /* For Firefox */
 html {
-    scrollbar-width: thin; /* Width of the scrollbar */
-    scrollbar-color: #888 #f1f1f1; /* Colors of the scrollbar handle and track */
+    scrollbar-width: thin;
+    /* Width of the scrollbar */
+    scrollbar-color: #888 #f1f1f1;
+    /* Colors of the scrollbar handle and track */
+}
+
+#rules-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    background-color: #f98e54;
+    opacity: 0.8;
+}
+
+#rules-table th,
+#rules-table td {
+    border: 3px solid #465865;
+    padding: 8px;
+}
+
+#rules-table th {
+    background-color: #f9742c;
+    text-align: left;
+}
+
+#rules-table select.activity-type {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+#rules-table input.default-title {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+#add-rule {
+    background-color: #35ae35;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#add-rule:hover {
+    background-color: #216d21;
+}
+
+
+.remove-rule {
+    background-color: #ff5555;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.remove-rule:hover {
+    background-color: #ff3333;
 }

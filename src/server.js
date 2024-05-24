@@ -305,7 +305,7 @@ async function updateDescription(activity_id, athlete_id, bike) {
     const refresh_token = userData.refreshToken;
     const distance = bike ? await getOverallRideDistance(athlete_id) : await getOverallRunDistance(athlete_id);
     if (distance <= 20013.15) {
-      const city_api_url = `https://milestone.me.uk/api/city-separation-distance?distance=${distance}`;
+      const city_api_url = `https://${process.env.API_URL}/api/city-separation-distance?distance=${distance}`;
       try {
         const response = await fetch(city_api_url, {
           method: 'GET',
@@ -396,6 +396,7 @@ app.get('/api/athlete-data', checkStravaAuth, async (req, res) => {
   try {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
+    const activityRules = userData.activityRules;
     const athleteID = userData.athleteID;
     const athleteUsername = userData.athleteUsername;
     const athleteName = userData.athleteName;
@@ -404,6 +405,7 @@ app.get('/api/athlete-data', checkStravaAuth, async (req, res) => {
     const enableRunDescription = userData.enableRunDescription;
     const enableBikeDescription = userData.enableBikeDescription;
     res.json({
+      activityRules,
       athleteID,
       athleteUsername,
       athleteName,
@@ -428,6 +430,28 @@ app.post('/api/save-preferences', checkStravaAuth, (req, res) => {
       enableRunDescription,
       enableBikeDescription,
       enableDescriptionChanges,
+    })
+      .then(() => {
+        return res.status(200).json({ message: 'Preferences saved successfully' });
+      })
+      .catch(error => {
+        console.error('Error saving preferences:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      });
+  } catch (error) {
+    console.error('Error saving preferences:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.post('/api/rules-update', checkStravaAuth, (req, res) => {
+  try {
+    const athleteID = req.session.athleteID;
+    const userRef = admin.database().ref(`/users/${athleteID}`);
+    const activityRules = req.body;
+    userRef.update({
+      activityRules
     })
       .then(() => {
         return res.status(200).json({ message: 'Preferences saved successfully' });
@@ -498,7 +522,7 @@ app.get('/strava-auth', (req, res) => {
   if (req.session && req.session.athleteID) {
     res.redirect('/dashboard');
   } else {
-    const stravaAuthUrl = `http://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=http://milestone.me.uk/exchange_token&approval_prompt=force&scope=read,activity:write,activity:read`;
+    const stravaAuthUrl = `http://www.strava.com/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&redirect_uri=http://${process.env.API_URL}/exchange_token&approval_prompt=force&scope=read,activity:write,activity:read`;
     res.redirect(stravaAuthUrl);
   }
 });
@@ -588,6 +612,8 @@ app.post('/webhook', async (req, res) => {
     if (await isRun(activity_id, athlete_id) && await isEnableRunDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)) {
       await updateDescription(activity_id, athlete_id, false);
     }
+    checkRules();
+
     if (await isWorkout(activity_id, athlete_id) && athlete_id == 63721242) {
       await updateActivityType(activity_id, athlete_id, "WeightTraining");
     }

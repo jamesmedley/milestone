@@ -1,62 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Milestone</title>
-    <link rel="icon" href="/images/milestone-logo/milestone-icon.png" type="image/png">
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Milestone</title>
+  <link rel="icon" href="/images/milestone-logo/milestone-icon.png" type="image/png">
+  <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-    <header>
-        <img src="\images\milestone-logo\milestone-high-resolution-logo-color-on-transparent-background.png" alt="milestone">
-    </header>
-    <div id="confirmation-popup" class="popup">
-        <span class="bold-font-no-shadow">Preferences Updated</span>
-    </div>
-    <div class="content"> 
-      <main>
-          <div id="user-profile">
-              <a id="user-profile-link" href="" target="_blank">
-                <img id="user-profile-image" src="" alt="User Profile">
-              </a>
-            </div>
-          <h1 class="bold-font" id="user-greeting">Hello, {name}</h1>
-          <form id="preferences-form">
-              <h2 class="medium-font">Preferences</h2>
-              <div class="toggle-switch">
-                  <label class="switch">
-                    <input type="checkbox" id="enable-description-changes" name="enable-description-changes">
-                    <span class="slider"></span>
-                  </label>
-                  <span class="toggle-label">Enable Description Changes</span>
-                </div>
-                <div>
-                  <label class="medium-font">
-                    <input type="checkbox" id="edit-runs" name="edit-runs">
-                    <span>Edit Descriptions for Runs</span>
-                  </label>
-                </div>
-                <div>
-                  <label class="medium-font">
-                    <input type="checkbox" id="edit-bike-rides" name="edit-bike-rides">
-                    <span>Edit Descriptions for Bike Rides</span>
-                  </label>
-                </div>
-          </form>
-          <form id="account">
-              <h2 class="medium-font">Account</h2>
-              <div>
-                  <button class="medium-font-no-shadow" type="button" id="delete-account">Delete Account</button>
-              </div>
-          </form>
-      </main>
-    </div>
-    <footer>
-        <img src="\images\strava\powered by Strava\pwrdBy_strava_light\api_logo_pwrdBy_strava_stack_light.png" alt="Powered By Strava"img>
-        <p class="medium-font">&copy; 2023 milestone. All rights reserved.</p>
-        <a class="standard-font" href="/privacy-policy" style="color: white; text-decoration: none;">Privacy Policy</a>
+  <header>
+    <img src="\images\milestone-logo\milestone-high-resolution-logo-color-on-transparent-background.png"
+      alt="milestone">
+  </header>
+  <div id="confirmation-popup" class="popup">
+    <span class="bold-font-no-shadow">Preferences Updated</span>
+  </div>
+  <div class="content">
+    <main>
+      <div id="user-profile">
+        <a id="user-profile-link" href="" target="_blank">
+          <img id="user-profile-image" src="" alt="User Profile">
+        </a>
+      </div>
+      <h1 class="bold-font" id="user-greeting">Hello, {name}</h1>
+      <form id="preferences-form">
+        <h2 class="medium-font">Preferences</h2>
+        <div class="toggle-switch">
+          <label class="switch">
+            <input type="checkbox" id="enable-description-changes" name="enable-description-changes">
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">Enable Description Changes</span>
+        </div>
+        <div>
+          <label class="medium-font">
+            <input type="checkbox" id="edit-runs" name="edit-runs">
+            <span>Edit Descriptions for Runs</span>
+          </label>
+        </div>
+        <div>
+          <label class="medium-font">
+            <input type="checkbox" id="edit-bike-rides" name="edit-bike-rides">
+            <span>Edit Descriptions for Bike Rides</span>
+          </label>
+        </div>
+      </form>
+      <h2 class="medium-font">Activity Conversion Rules</h2>
+      <table class="medium-font-no-shadow" id="rules-table" style="display: none;">
+        <thead>
+          <tr>
+            <th>Original Type</th>
+            <th>New Type</th>
+            <th>New Title</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+            
+        </tbody>
+      </table>
+      <button type="button" id="add-rule">Add Rule</button>
+      <form id="account">
+        <h2 class="medium-font">Account</h2>
+        <div>
+          <button class="medium-font-no-shadow" type="button" id="delete-account">Delete Account</button>
+        </div>
+      </form>
+    </main>
+  </div>
+  <footer>
+    <img src="\images\strava\powered by Strava\pwrdBy_strava_light\api_logo_pwrdBy_strava_stack_light.png"
+        alt="Powered By Strava" img>
+    <p class="standard-font">&copy; <span id="copyright-year"></span> Milestone. All rights reserved.</p>
+    <a class="standard-font" href="/privacy-policy" style="color: white; text-decoration: none;">Privacy Policy</a>
     </footer>
+    <script>
+        const currentYear = new Date().getFullYear();
+        document.getElementById('copyright-year').textContent = currentYear;
+    </script>
 </body>
-    <script src="js/main.js"></script>
+<script src="js/main.js"></script>
 </html>

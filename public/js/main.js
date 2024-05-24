@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", async function() {
+document.addEventListener("DOMContentLoaded", async function () {
     try {
         const userID = await getSessionUID();
         const userData = await getUserData(userID);
@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         const userImageURL = userData.athletePFP;
 
         const userGreeting = document.getElementById("user-greeting");
-        const userProfileImageLink = document.getElementById("user-profile-link"); 
+        const userProfileImageLink = document.getElementById("user-profile-link");
 
         if (userGreeting && userName) {
             userGreeting.textContent = `Hello, ${userName}`;
@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", async function() {
             userProfileImage.style.borderRadius = "50%";
             userProfileImage.style.width = "150px";
             userProfileImage.style.height = "150px";
-           
         }
 
         const enableDescriptionChangesToggle = document.getElementById("enable-description-changes");
@@ -30,7 +29,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         editRunsCheck.checked = userData.enableRunDescription;
         editRunsCheck.disabled = !enableDescriptionChangesToggle.checked;
         editRidesCheck.disabled = !enableDescriptionChangesToggle.checked;
-        
+
         enableDescriptionChangesToggle.addEventListener("change", async function () {
             editRunsCheck.disabled = !enableDescriptionChangesToggle.checked;
             editRidesCheck.disabled = !enableDescriptionChangesToggle.checked;
@@ -46,45 +45,199 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
 
         const deleteAccountButton = document.getElementById("delete-account");
-        
         deleteAccountButton.addEventListener("click", handleDeleteAccountClick);
+
+        const activityRules = userData.activityRules;
+        const rulesTable = document.getElementById('rules-table');
+        const rulesTableBody = rulesTable.querySelector('tbody');
+        const addRuleButton = document.getElementById('add-rule');
+        if(activityRules != undefined){
+            addExistingRules(activityRules, rulesTable, rulesTableBody);
+        }
+        rulesTable.addEventListener('input', function (event) {
+            const tableData = tableToJSON(rulesTable);
+            rulesSubmit(tableData)
+        });
+
+        addRuleButton.addEventListener('click', () => {
+            if (rulesTable.style.display === 'none') {
+                rulesTable.style.display = 'table';
+            }
+
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>
+                    <select class="activity-type">
+                        <option value="Workout">Workout</option>
+                        <option value="Run">Run</option>
+                        <option value="Ride">Ride</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="activity-type">
+                        <option value="Weight Training">Weight Training</option>
+                        <option value="Run">Run</option>
+                        <option value="Ride">Ride</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="default-title" placeholder="Leave blank for default Strava title">
+                </td>
+                <td>
+                    <button type="button" class="remove-rule">Remove</button>
+                </td>
+            `;
+            rulesTableBody.appendChild(newRow);
+            const tableData = tableToJSON(rulesTable);
+            rulesSubmit(tableData)
+        });
+
+        rulesTableBody.addEventListener('click', (event) => {
+            if (event.target.classList.contains('remove-rule')) {
+                const row = event.target.closest('tr');
+                row.remove();
+
+                if (rulesTableBody.children.length === 0) {
+                    rulesTable.style.display = 'none';
+                }
+                const tableData = tableToJSON(rulesTable);
+                rulesSubmit(tableData)
+            }
+        });
     } catch (error) {
         console.error('Error:', error);
     }
 });
+
+function tableToJSON(table) {
+    const data = [];
+    const headers = [];
+
+    // Iterate through the header row to get column names
+    for (let i = 0; i < table.rows[0].cells.length - 1; i++) {
+        headers[i] = table.rows[0].cells[i].textContent.trim();
+    }
+
+    // Iterate through the rows (starting from the second row) to get data
+    for (let i = 1; i < table.rows.length; i++) {
+        const tableRow = table.rows[i];
+        const rowData = {};
+
+        // Iterate through the cells of the row
+        for (let j = 0; j < tableRow.cells.length - 1; j++) {
+            const cell = tableRow.cells[j];
+            const header = headers[j];
+
+            // Check the type of input element in the cell
+            const inputElement = cell.querySelector('input, select');
+            if (inputElement) {
+                if (inputElement.tagName.toLowerCase() === 'input') {
+                    // If input element is an input field
+                    rowData[header] = inputElement.value.trim();
+                } else if (inputElement.tagName.toLowerCase() === 'select') {
+                    // If input element is a select dropdown
+                    rowData[header] = inputElement.options[inputElement.selectedIndex].text.trim();
+                }
+            } else {
+                // If no input element found, use the cell's text content
+                rowData[header] = cell.textContent.trim();
+            }
+        }
+
+        // Add the row data to the data array
+        data.push(rowData);
+    }
+
+    return data;
+}
+
+function addExistingRules(activityRules, rulesTable, rulesTableBody) {
+    for (let i = 0; i < activityRules.length; i++) {
+        if (rulesTable.style.display === 'none') {
+            rulesTable.style.display = 'table';
+        }
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+        <td>
+            <select class="activity-type">
+                <option value="Workout" ${activityRules[i]['Original Type'] === 'Workout' ? 'selected' : ''}>Workout</option>
+                <option value="Run" ${activityRules[i]['Original Type'] === 'Run' ? 'selected' : ''}>Run</option>
+                <option value="Ride" ${activityRules[i]['Original Type'] === 'Ride' ? 'selected' : ''}>Ride</option>
+            </select>
+        </td>
+        <td>
+            <select class="activity-type">
+                <option value="Weight Training" ${activityRules[i]['New Type'] === 'Weight Training' ? 'selected' : ''}>Weight Training</option>
+                <option value="Run" ${activityRules[i]['New Type'] === 'Run' ? 'selected' : ''}>Run</option>
+                <option value="Ride" ${activityRules[i]['New Type'] === 'Ride' ? 'selected' : ''}>Ride</option>
+            </select>
+        </td>
+        <td>
+            <input type="text" class="default-title" placeholder="Leave blank for default Strava title" value="${activityRules[i]['New Title'] || ''}">
+        </td>
+        <td>
+            <button type="button" class="remove-rule">Remove</button>
+        </td>
+        `;
+
+        rulesTableBody.appendChild(newRow);
+    }
+    const tableData = tableToJSON(rulesTable);
+    rulesSubmit(tableData)
+}
+
+
+async function rulesSubmit(tableData) {
+    fetch('/api/rules-update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tableData),
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            showConfirmationPopup();
+        })
+        .catch(error => {
+            console.error('Error saving preferences:', error);
+        });
+}
 
 
 async function preferencesSubmit() {
     const enableRunDescription = document.getElementById("edit-runs").checked;
     const enableBikeDescription = document.getElementById("edit-bike-rides").checked;
     const enableDescriptionChanges = document.getElementById("enable-description-changes").checked;
-  
+
     fetch('/api/save-preferences', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ enableRunDescription, enableBikeDescription, enableDescriptionChanges }),
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ enableRunDescription, enableBikeDescription, enableDescriptionChanges }),
     })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        showConfirmationPopup();
-      })
-      .catch(error => {
-        console.error('Error saving preferences:', error);
-      });
-  }
-  
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            showConfirmationPopup();
+        })
+        .catch(error => {
+            console.error('Error saving preferences:', error);
+        });
+}
+
 function showConfirmationPopup() {
     const popup = document.getElementById("confirmation-popup");
-      popup.classList.add("slide-in");
-      setTimeout(() => {
-      popup.classList.remove("slide-in");
+    popup.classList.add("slide-in");
+    setTimeout(() => {
+        popup.classList.remove("slide-in");
     }, 2000);
-  }
-  
+}
+
 
 async function handleDeleteAccountClick() {
     const confirmDelete = confirm("Are you sure you want to delete your account?");
