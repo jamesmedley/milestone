@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const rulesTable = document.getElementById('rules-table');
         const rulesTableBody = rulesTable.querySelector('tbody');
         const addRuleButton = document.getElementById('add-rule');
-        if(activityRules != undefined){
+        if (activityRules != undefined) {
             addExistingRules(activityRules, rulesTable, rulesTableBody);
         }
         rulesTable.addEventListener('input', function (event) {
@@ -59,37 +59,43 @@ document.addEventListener("DOMContentLoaded", async function () {
             rulesSubmit(tableData)
         });
 
-        addRuleButton.addEventListener('click', () => {
+        let activityTypes = [];
+        // Fetch and load JSON data
+        try {
+            const response = await fetch('resources/strava_sports.json');
+            const data = await response.json();
+            activityTypes = data.StravaActivityTypes;
+        } catch (error) {
+            console.error('Error fetching activity types:', error);
+        }
+
+        addRuleButton.addEventListener('click', async () => {
             if (rulesTable.style.display === 'none') {
                 rulesTable.style.display = 'table';
             }
 
             const newRow = document.createElement('tr');
             newRow.innerHTML = `
-                <td>
-                    <select class="activity-type">
-                        <option value="Workout">Workout</option>
-                        <option value="Run">Run</option>
-                        <option value="Ride">Ride</option>
-                    </select>
-                </td>
-                <td>
-                    <select class="activity-type">
-                        <option value="Weight Training">Weight Training</option>
-                        <option value="Run">Run</option>
-                        <option value="Ride">Ride</option>
-                    </select>
-                </td>
-                <td>
-                    <input type="text" class="default-title" placeholder="Leave blank for default Strava title">
-                </td>
-                <td>
-                    <button type="button" class="remove-rule">Remove</button>
-                </td>
-            `;
+            <td>
+                <select class="activity-type">
+                    ${createOptions(activityTypes)}
+                </select>
+            </td>
+            <td>
+                <select class="activity-type">
+                    ${createOptions(activityTypes)}
+                </select>
+            </td>
+            <td>
+                <input type="text" class="default-title" placeholder="Leave blank for default Strava title">
+            </td>
+            <td>
+                <button type="button" class="remove-rule">Remove</button>
+            </td>
+        `;
             rulesTableBody.appendChild(newRow);
             const tableData = tableToJSON(rulesTable);
-            rulesSubmit(tableData)
+            rulesSubmit(tableData);
         });
 
         rulesTableBody.addEventListener('click', (event) => {
@@ -151,41 +157,61 @@ function tableToJSON(table) {
     return data;
 }
 
-function addExistingRules(activityRules, rulesTable, rulesTableBody) {
-    for (let i = 0; i < activityRules.length; i++) {
-        if (rulesTable.style.display === 'none') {
-            rulesTable.style.display = 'table';
-        }
-        const newRow = document.createElement('tr');
-        newRow.innerHTML = `
-        <td>
-            <select class="activity-type">
-                <option value="Workout" ${activityRules[i]['Original Type'] === 'Workout' ? 'selected' : ''}>Workout</option>
-                <option value="Run" ${activityRules[i]['Original Type'] === 'Run' ? 'selected' : ''}>Run</option>
-                <option value="Ride" ${activityRules[i]['Original Type'] === 'Ride' ? 'selected' : ''}>Ride</option>
-            </select>
-        </td>
-        <td>
-            <select class="activity-type">
-                <option value="Weight Training" ${activityRules[i]['New Type'] === 'Weight Training' ? 'selected' : ''}>Weight Training</option>
-                <option value="Run" ${activityRules[i]['New Type'] === 'Run' ? 'selected' : ''}>Run</option>
-                <option value="Ride" ${activityRules[i]['New Type'] === 'Ride' ? 'selected' : ''}>Ride</option>
-            </select>
-        </td>
-        <td>
-            <input type="text" class="default-title" placeholder="Leave blank for default Strava title" value="${activityRules[i]['New Title'] || ''}">
-        </td>
-        <td>
-            <button type="button" class="remove-rule">Remove</button>
-        </td>
-        `;
+async function addExistingRules(activityRules, rulesTable, rulesTableBody) {
+    let activityTypes = [];
 
-        rulesTableBody.appendChild(newRow);
+    try {
+        const response = await fetch('resources/strava_sports.json');
+        const data = await response.json();
+        activityTypes = data.StravaActivityTypes;
+
+        for (let i = 0; i < activityRules.length; i++) {
+            if (rulesTable.style.display === 'none') {
+                rulesTable.style.display = 'table';
+            }
+            const newRow = document.createElement('tr');
+
+            newRow.innerHTML = `
+                <td>
+                    <select class="activity-type">
+                        ${createOptions(activityTypes)}
+                    </select>
+                </td>
+                <td>
+                    <select class="activity-type">
+                        ${createOptions(activityTypes)}
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="default-title" placeholder="Leave blank for default Strava title" value="${activityRules[i]['New Title'] || ''}">
+                </td>
+                <td>
+                    <button type="button" class="remove-rule">Remove</button>
+                </td>
+            `;
+
+            rulesTableBody.appendChild(newRow);
+
+            // Select the correct options
+            const selectElements = newRow.querySelectorAll('select.activity-type');
+            if (selectElements[0] && activityRules[i]['Original Type']) {
+                selectElements[0].value = activityRules[i]['Original Type'];
+            }
+            if (selectElements[1] && activityRules[i]['New Type']) {
+                selectElements[1].value = activityRules[i]['New Type'];
+            }
+        }
+
+        const tableData = tableToJSON(rulesTable);
+        rulesSubmit(tableData);
+    } catch (error) {
+        console.error('Error fetching activity types:', error);
     }
-    const tableData = tableToJSON(rulesTable);
-    rulesSubmit(tableData)
 }
 
+function createOptions(optionsArray) {
+    return optionsArray.map(option => `<option value="${option}">${option}</option>`).join('');
+}
 
 async function rulesSubmit(tableData) {
     fetch('/api/rules-update', {
@@ -250,8 +276,6 @@ async function handleDeleteAccountClick() {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-
-            console.log("Account deleted");
             window.location.href = '/';
         } catch (error) {
             console.error('Error deleting account:', error);

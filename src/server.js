@@ -83,87 +83,6 @@ function round_1dp(number) {
 }
 
 
-async function deleteStravaWebhook(sub_id) {
-  const subscriptionUrl = `https://www.strava.com/api/v3/push_subscriptions/${sub_id}`;
-  const requestOptions = {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      client_id: process.env.CLIENT_ID,
-      client_secret: process.env.CLIENT_SECRET
-    }),
-  };
-  try {
-    const response = await fetch(subscriptionUrl, requestOptions);
-    if (response.ok) {
-      console.log('Webhook subscription successfully deleted.');
-    } else {
-      const responseData = await response.json();
-      console.error('Failed to delete webhook subscription:', responseData);
-    }
-  } catch (error) {
-    console.error('Error deleting webhook subscription:', error);
-  }
-}
-
-
-async function viewStravaWebhooks() {
-  const subscriptionUrl = `https://www.strava.com/api/v3/push_subscriptions/?client_id=${process.env.CLIENT_ID}&client_secret=${process.env.CLIENT_SECRET}`;
-  const requestOptions = {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  };
-  try {
-    const response = await fetch(subscriptionUrl, requestOptions);
-    if (response.ok) {
-      const responseData = await response.json();
-      console.log('Webhook subscriptions successfully received:');
-    } else {
-      console.error('Failed to retrieve webhook subscriptions:', response.statusText);
-    }
-  } catch (error) {
-    console.error('Error retrieving webhook subscriptions:', error);
-  }
-}
-
-async function createStravaWebhook() {
-  const subscriptionUrl = 'https://www.strava.com/api/v3/push_subscriptions';
-  const callbackUrl = 'https://milestone.me.uk/webhook'; //temporary ngrok public domain
-  await viewStravaWebhooks()
-  await deleteStravaWebhook(process.env.WEBHOOK_ID)
-  const requestOptions = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      client_id: process.env.CLIENT_ID,
-      client_secret: process.env.CLIENT_SECRET,
-      callback_url: callbackUrl,
-      verify_token: process.env.WEBHOOK_VERIFY_TOKEN,
-    }),
-  };
-
-  try {
-    const response = await fetch(subscriptionUrl, requestOptions);
-    if (response.ok) {
-      const responseData = await response.json();
-      process.env.WEBHOOK_ID = responseData.id
-      console.log('Webhook subscription created:', responseData);
-    } else {
-      console.error('Failed to create webhook subscription:', response.statusText);
-    }
-  } catch (error) {
-    console.error('Error creating webhook subscription:', error);
-  }
-}
-//createStravaWebhook(); // create strava webhook
-
-
 async function isEnableBikeDescription(athleteID) {
   const userRef = admin.database().ref(`/users/${athleteID}`);
   try {
@@ -205,43 +124,14 @@ async function isEnableDescriptionChanges(athleteID) {
   }
 }
 
-async function isBikeRide(activity_id, athlete_id) {
+async function isType(activity_id, athlete_id, type) {
   const userRef = admin.database().ref(`/users/${athlete_id}`);
   try {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
     const refresh_token = userData.refreshToken;
-    const type = await strava_api.getActivityType(refresh_token, activity_id);
-    return type == "Ride";
-  } catch (error) {
-    console.error("Error reading data:", error);
-    throw error;
-  }
-}
-
-
-async function isRun(activity_id, athlete_id) {
-  const userRef = admin.database().ref(`/users/${athlete_id}`);
-  try {
-    const snapshot = await userRef.once("value");
-    const userData = snapshot.val();
-    const refresh_token = userData.refreshToken;
-    const type = await strava_api.getActivityType(refresh_token, activity_id);
-    return type == "Run";
-  } catch (error) {
-    console.error("Error reading data:", error);
-    throw error;
-  }
-}
-
-async function isWorkout(activity_id, athlete_id) {
-  const userRef = admin.database().ref(`/users/${athlete_id}`);
-  try {
-    const snapshot = await userRef.once("value");
-    const userData = snapshot.val();
-    const refresh_token = userData.refreshToken;
-    const type = await strava_api.getActivityType(refresh_token, activity_id);
-    return type == "Workout";
+    const activityType = await strava_api.getActivityType(refresh_token, activity_id);
+    return activityType == type;
   } catch (error) {
     console.error("Error reading data:", error);
     throw error;
@@ -253,7 +143,7 @@ async function getOverallRideDistance(athlete_id) {
   const userRef = admin.database().ref(`/users/${athlete_id}`);
   try {
     const snapshot = await userRef.once("value");
-    const userData = snapshot.val();
+    const userData = snapshot.val(s);
     const refresh_token = userData.refreshToken;
     const rideTotal = await strava_api.getAthleteRideTotal(refresh_token, athlete_id);
     return rideTotal;
@@ -294,6 +184,20 @@ async function updateActivityType(activity_id, athlete_id, newType) {
   } catch (error) {
     console.error("Updating activity type:", error);
     throw error;
+  }
+}
+
+async function checkRules(athlete_id, activity_id) {
+  const userRef = admin.database().ref(`/users/${athlete_id}`);
+  const snapshot = await userRef.once("value");
+  const userData = snapshot.val();
+  const activityType = await strava_api.getActivityType(refresh_token, activity_id);
+  const activityRules = userData.activityRules;
+  for (let i = 0; i < activityRules.length; i++) {
+    if (activityRules[i]["Original Type"] == activityType) {
+      await updateActivityType(activity_id, athlete_id, { name: activityRules[i]["New Title"], type: activityRules[i]["New Type"] });
+    }
+    return // only allowed one rule per activity type
   }
 }
 
@@ -606,17 +510,13 @@ app.post('/webhook', async (req, res) => {
   if (req.body.aspect_type == 'create' && req.body.object_type == 'activity') {
     const activity_id = req.body.object_id;
     const athlete_id = req.body.owner_id;
-    if (await isBikeRide(activity_id, athlete_id) && await isEnableBikeDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)) {
+    if (await isType(activity_id, athlete_id, "Ride") && await isEnableBikeDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)) {
       await updateDescription(activity_id, athlete_id, true);
     }
-    if (await isRun(activity_id, athlete_id) && await isEnableRunDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)) {
+    if (await isType(activity_id, athlete_id, "Run") && await isEnableRunDescription(athlete_id) && await isEnableDescriptionChanges(athlete_id)) {
       await updateDescription(activity_id, athlete_id, false);
     }
-    checkRules();
-
-    if (await isWorkout(activity_id, athlete_id) && athlete_id == 63721242) {
-      await updateActivityType(activity_id, athlete_id, "WeightTraining");
-    }
+    checkRules(athlete_id, activity_id); // update activty types/names
   }
 })
 
@@ -641,6 +541,86 @@ app.get('/webhook', (req, res) => { // code from strava docs
     }
   }
 });
+
+async function deleteStravaWebhook(sub_id) {
+  const subscriptionUrl = `https://www.strava.com/api/v3/push_subscriptions/${sub_id}`;
+  const requestOptions = {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      client_id: process.env.CLIENT_ID,
+      client_secret: process.env.CLIENT_SECRET
+    }),
+  };
+  try {
+    const response = await fetch(subscriptionUrl, requestOptions);
+    if (response.ok) {
+      console.log('Webhook subscription successfully deleted.');
+    } else {
+      const responseData = await response.json();
+      console.error('Failed to delete webhook subscription:', responseData);
+    }
+  } catch (error) {
+    console.error('Error deleting webhook subscription:', error);
+  }
+}
+
+
+async function viewStravaWebhooks() {
+  const subscriptionUrl = `https://www.strava.com/api/v3/push_subscriptions/?client_id=${process.env.CLIENT_ID}&client_secret=${process.env.CLIENT_SECRET}`;
+  const requestOptions = {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  };
+  try {
+    const response = await fetch(subscriptionUrl, requestOptions);
+    if (response.ok) {
+      const responseData = await response.json();
+      console.log('Webhook subscriptions successfully received:');
+    } else {
+      console.error('Failed to retrieve webhook subscriptions:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error retrieving webhook subscriptions:', error);
+  }
+}
+
+async function createStravaWebhook() {
+  const subscriptionUrl = 'https://www.strava.com/api/v3/push_subscriptions';
+  const callbackUrl = 'https://milestone.me.uk/webhook'; //temporary ngrok public domain
+  await viewStravaWebhooks()
+  await deleteStravaWebhook(process.env.WEBHOOK_ID)
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      client_id: process.env.CLIENT_ID,
+      client_secret: process.env.CLIENT_SECRET,
+      callback_url: callbackUrl,
+      verify_token: process.env.WEBHOOK_VERIFY_TOKEN,
+    }),
+  };
+
+  try {
+    const response = await fetch(subscriptionUrl, requestOptions);
+    if (response.ok) {
+      const responseData = await response.json();
+      process.env.WEBHOOK_ID = responseData.id
+      console.log('Webhook subscription created:', responseData);
+    } else {
+      console.error('Failed to create webhook subscription:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error creating webhook subscription:', error);
+  }
+}
+//createStravaWebhook(); // create strava webhook
 
 
 app.listen(port, () => {
