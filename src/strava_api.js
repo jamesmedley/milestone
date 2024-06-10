@@ -165,14 +165,15 @@ async function updateActivityType(refresh_token, activity_id, newType) {
         }
 
         const activityData = await activityResponse.json();
-        const currentName = activityData.name || '';
         if(newType.name == ""){ // set to "{Morning/Afternoon etc.} {newType}"
+            const currentName = activityData.name || '';
             let currNameSplit = currentName.split(" ");
             if (currNameSplit.length > 1) {
                 currNameSplit = [currNameSplit[0], newType.type];
             }
             newType.name = currNameSplit.join(" ");
         }
+        newType.type = newType.type.split(' ').join('')
         const updatableActivity = {
             name: newType.name,
             type: newType.type
@@ -187,12 +188,11 @@ async function updateActivityType(refresh_token, activity_id, newType) {
                 },
                 body: JSON.stringify(updatableActivity)
             });
-            console.log("Response:",updateResponse)
             if (!updateResponse.ok) {
                 throw new Error('Failed to update activity type');
             }
 
-            console.log(`Activity ${activity_id} type updated to ${newType}.`);
+            console.log(`Activity ${activity_id} type updated to ${newType.type}.`);
         } catch (error) {
             console.error('Error updating activity type:', error);
             throw error;
