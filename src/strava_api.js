@@ -187,7 +187,7 @@ async function updateActivityType(refresh_token, activity_id, newType) {
                 },
                 body: JSON.stringify(updatableActivity)
             });
-
+            console.log("Response:",updateResponse)
             if (!updateResponse.ok) {
                 throw new Error('Failed to update activity type');
             }
