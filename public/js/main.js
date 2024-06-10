@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", async function() {
+document.addEventListener("DOMContentLoaded", async function () {
     try {
         const userID = await getSessionUID();
         const userData = await getUserData(userID);
@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         const userImageURL = userData.athletePFP;
 
         const userGreeting = document.getElementById("user-greeting");
-        const userProfileImageLink = document.getElementById("user-profile-link"); 
+        const userProfileImageLink = document.getElementById("user-profile-link");
 
         if (userGreeting && userName) {
             userGreeting.textContent = `Hello, ${userName}`;
@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", async function() {
             userProfileImage.style.borderRadius = "50%";
             userProfileImage.style.width = "150px";
             userProfileImage.style.height = "150px";
-           
         }
 
         const enableDescriptionChangesToggle = document.getElementById("enable-description-changes");
@@ -30,7 +29,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         editRunsCheck.checked = userData.enableRunDescription;
         editRunsCheck.disabled = !enableDescriptionChangesToggle.checked;
         editRidesCheck.disabled = !enableDescriptionChangesToggle.checked;
-        
+
         enableDescriptionChangesToggle.addEventListener("change", async function () {
             editRunsCheck.disabled = !enableDescriptionChangesToggle.checked;
             editRidesCheck.disabled = !enableDescriptionChangesToggle.checked;
@@ -46,45 +45,232 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
 
         const deleteAccountButton = document.getElementById("delete-account");
-        
         deleteAccountButton.addEventListener("click", handleDeleteAccountClick);
+
+        const activityRules = userData.activityRules;
+        const rulesTable = document.getElementById('rules-table');
+        const rulesTableBody = rulesTable.querySelector('tbody');
+        const addRuleButton = document.getElementById('add-rule');
+
+        let activityTypes = [];
+
+        // Fetch and load JSON data
+        try {
+            const response = await fetch('resources/strava_sports.json');
+            const data = await response.json();
+            activityTypes = data.StravaActivityTypes;
+        } catch (error) {
+            console.error('Error fetching activity types:', error);
+        }
+
+        if (activityRules != undefined) {
+            addExistingRules(activityRules, rulesTable, rulesTableBody, activityTypes);
+        }
+
+        rulesTable.addEventListener('input', function (event) {
+            const tableData = tableToJSON(rulesTable);
+            rulesSubmit(tableData);
+            updateOriginalTypeOptions(activityTypes);
+        });
+
+        addRuleButton.addEventListener('click', () => {
+            if (rulesTable.style.display === 'none') {
+                rulesTable.style.display = 'table';
+            }
+
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>
+                    <select class="activity-type original-type">
+                        <option value="" selected disabled>Select Type</option>
+                        ${createOptions(activityTypes)}
+                    </select>
+                </td>
+                <td>
+                    <select class="activity-type">
+                        ${createOptions(activityTypes)}
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="default-title" placeholder="Leave blank for default Strava title">
+                </td>
+                <td>
+                    <button type="button" class="remove-rule">Remove</button>
+                </td>
+            `;
+            rulesTableBody.appendChild(newRow);
+            updateOriginalTypeOptions(activityTypes);
+            const tableData = tableToJSON(rulesTable);
+            rulesSubmit(tableData);
+        });
+
+        rulesTableBody.addEventListener('click', (event) => {
+            if (event.target.classList.contains('remove-rule')) {
+                const row = event.target.closest('tr');
+                row.remove();
+
+                if (rulesTableBody.children.length === 0) {
+                    rulesTable.style.display = 'none';
+                }
+                updateOriginalTypeOptions(activityTypes);
+                const tableData = tableToJSON(rulesTable);
+                rulesSubmit(tableData);
+            }
+        });
     } catch (error) {
         console.error('Error:', error);
     }
 });
 
+function tableToJSON(table) {
+    const data = [];
+    const headers = [];
+
+    // Iterate through the header row to get column names
+    for (let i = 0; i < table.rows[0].cells.length - 1; i++) {
+        headers[i] = table.rows[0].cells[i].textContent.trim();
+    }
+
+    // Iterate through the rows (starting from the second row) to get data
+    for (let i = 1; i < table.rows.length; i++) {
+        const tableRow = table.rows[i];
+        const rowData = {};
+
+        // Get the "Original Type" column's select element
+        const originalTypeCell = tableRow.cells[0];
+        const originalTypeSelect = originalTypeCell.querySelector('select');
+
+        // Check if the "Original Type" is "Select Type" or not
+        if (originalTypeSelect && originalTypeSelect.options[originalTypeSelect.selectedIndex].text.trim() === 'Select Type') {
+            continue; // Skip this row if "Original Type" is "Select Type"
+        }
+
+        // Iterate through the cells of the row
+        for (let j = 0; j < tableRow.cells.length - 1; j++) {
+            const cell = tableRow.cells[j];
+            const header = headers[j];
+
+            // Check the type of input element in the cell
+            const inputElement = cell.querySelector('input, select');
+            if (inputElement) {
+                if (inputElement.tagName.toLowerCase() === 'input') {
+                    // If input element is an input field
+                    rowData[header] = inputElement.value.trim();
+                } else if (inputElement.tagName.toLowerCase() === 'select') {
+                    // If input element is a select dropdown
+                    rowData[header] = inputElement.options[inputElement.selectedIndex].text.trim();
+                }
+            } else {
+                // If no input element found, use the cell's text content
+                rowData[header] = cell.textContent.trim();
+            }
+        }
+
+        // Add the row data to the data array
+        data.push(rowData);
+    }
+
+    return data;
+}
+
+async function addExistingRules(activityRules, rulesTable, rulesTableBody, activityTypes) {
+    try {
+        for (let i = 0; i < activityRules.length; i++) {
+            if (rulesTable.style.display === 'none') {
+                rulesTable.style.display = 'table';
+            }
+            const newRow = document.createElement('tr');
+
+            newRow.innerHTML = `
+                <td>
+                    <select class="activity-type original-type">
+                        <option value="" selected disabled>Select Type</option>
+                        ${createOptions(activityTypes)}
+                    </select>
+                </td>
+                <td>
+                    <select class="activity-type">
+                        ${createOptions(activityTypes)}
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="default-title" placeholder="Leave blank for default Strava title" value="${activityRules[i]['New Title'] || ''}">
+                </td>
+                <td>
+                    <button type="button" class="remove-rule">Remove</button>
+                </td>
+            `;
+
+            rulesTableBody.appendChild(newRow);
+
+            // Select the correct options
+            const selectElements = newRow.querySelectorAll('select.activity-type');
+            if (selectElements[0] && activityRules[i]['Original Type']) {
+                selectElements[0].value = activityRules[i]['Original Type'];
+            }
+            if (selectElements[1] && activityRules[i]['New Type']) {
+                selectElements[1].value = activityRules[i]['New Type'];
+            }
+        }
+        updateOriginalTypeOptions(activityTypes);
+    } catch (error) {
+        console.error('Error fetching activity types:', error);
+    }
+}
+
+function createOptions(optionsArray) {
+    return optionsArray.map(option => `<option value="${option}">${option}</option>`).join('');
+}
+
+async function rulesSubmit(tableData) {
+    fetch('/api/rules-update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tableData),
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            showConfirmationPopup();
+        })
+        .catch(error => {
+            console.error('Error saving preferences:', error);
+        });
+}
 
 async function preferencesSubmit() {
     const enableRunDescription = document.getElementById("edit-runs").checked;
     const enableBikeDescription = document.getElementById("edit-bike-rides").checked;
     const enableDescriptionChanges = document.getElementById("enable-description-changes").checked;
-  
+
     fetch('/api/save-preferences', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ enableRunDescription, enableBikeDescription, enableDescriptionChanges }),
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ enableRunDescription, enableBikeDescription, enableDescriptionChanges }),
     })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        showConfirmationPopup();
-      })
-      .catch(error => {
-        console.error('Error saving preferences:', error);
-      });
-  }
-  
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            showConfirmationPopup();
+        })
+        .catch(error => {
+            console.error('Error saving preferences:', error);
+        });
+}
+
 function showConfirmationPopup() {
     const popup = document.getElementById("confirmation-popup");
-      popup.classList.add("slide-in");
-      setTimeout(() => {
-      popup.classList.remove("slide-in");
+    popup.classList.add("slide-in");
+    setTimeout(() => {
+        popup.classList.remove("slide-in");
     }, 2000);
-  }
-  
+}
 
 async function handleDeleteAccountClick() {
     const confirmDelete = confirm("Are you sure you want to delete your account?");
@@ -97,8 +283,6 @@ async function handleDeleteAccountClick() {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-
-            console.log("Account deleted");
             window.location.href = '/';
         } catch (error) {
             console.error('Error deleting account:', error);
@@ -106,8 +290,6 @@ async function handleDeleteAccountClick() {
         }
     }
 }
-
-
 
 async function getSessionUID() {
     try {
@@ -136,4 +318,29 @@ async function getUserData(athlete_id) {
         console.error('Error fetching athlete data:', error);
         throw error;
     }
+}
+
+function updateOriginalTypeOptions(activityTypes) {
+    const selectedOriginalTypes = new Set();
+    const originalTypeSelectors = document.querySelectorAll('select.original-type');
+
+    // Gather selected options, skipping the placeholder value
+    originalTypeSelectors.forEach(select => {
+        if (select.value) {
+            selectedOriginalTypes.add(select.value);
+        }
+    });
+
+    originalTypeSelectors.forEach(select => {
+        const currentValue = select.value;
+        const options = ['<option value="" disabled>Select Type</option>']  // Placeholder option
+
+        activityTypes.forEach(type => {
+            const isDisabled = selectedOriginalTypes.has(type) && type !== currentValue;
+            options.push(`<option value="${type}"${isDisabled ? ' disabled' : ''}>${type}</option>`);
+        });
+
+        select.innerHTML = options.join('');
+        select.value = currentValue;  // Restore the current value
+    });
 }

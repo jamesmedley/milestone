@@ -166,9 +166,16 @@ async function updateActivityType(refresh_token, activity_id, newType) {
 
         const activityData = await activityResponse.json();
         const currentName = activityData.name || '';
+        if(newType.name == ""){ // set to "{Morning/Afternoon etc.} {newType}"
+            let currNameSplit = currentName.split(" ");
+            if (currNameSplit.length > 1) {
+                currNameSplit = [currNameSplit[0], newType.type];
+            }
+            return currNameSplit.join(" ");
+        }
         const updatableActivity = {
-            name: currentName.replace('Workout', splitCamelCase(newType)),
-            type: newType
+            name: newType.name,
+            type: newType.type
         };
 
         try {
