@@ -197,8 +197,8 @@ async function checkRules(athlete_id, activity_id) {
   for (let i = 0; i < activityRules.length; i++) {
     if (activityRules[i]["Original Type"] == activityType) {
       await updateActivityType(activity_id, athlete_id, { name: activityRules[i]["New Title"], type: activityRules[i]["New Type"] });
+      return // only allowed one rule per activity type
     }
-    return // only allowed one rule per activity type
   }
 }
 

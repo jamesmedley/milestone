@@ -245,10 +245,6 @@ async function getActivityType(refresh_token, activity_id) {
     }
 }
 
-function splitCamelCase(string) {
-    return string.replace(/([a-z])([A-Z])/g, '$1 $2');
-}
-
 module.exports = {
     getAthleteRideTotal,
     getAthleteRunTotal,
