@@ -191,6 +191,7 @@ async function checkRules(athlete_id, activity_id) {
   const userRef = admin.database().ref(`/users/${athlete_id}`);
   const snapshot = await userRef.once("value");
   const userData = snapshot.val();
+  const refresh_token = userData.refreshToken;
   const activityType = await strava_api.getActivityType(refresh_token, activity_id);
   const activityRules = userData.activityRules;
   for (let i = 0; i < activityRules.length; i++) {
