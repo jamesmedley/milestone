@@ -171,7 +171,7 @@ async function updateActivityType(refresh_token, activity_id, newType) {
             if (currNameSplit.length > 1) {
                 currNameSplit = [currNameSplit[0], newType.type];
             }
-            return currNameSplit.join(" ");
+            newType.name = currNameSplit.join(" ");
         }
         const updatableActivity = {
             name: newType.name,
