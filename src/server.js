@@ -139,28 +139,18 @@ async function isType(activity_id, athlete_id, type) {
 }
 
 
-async function getOverallRideDistance(athlete_id) {
-  const userRef = admin.database().ref(`/users/${athlete_id}`);
-  try {
-    const snapshot = await userRef.once("value");
-    const userData = snapshot.val(s);
-    const refresh_token = userData.refreshToken;
-    const rideTotal = await strava_api.getAthleteRideTotal(refresh_token, athlete_id);
-    return rideTotal;
-  } catch (error) {
-    console.error("Error reading data:", error);
-    throw error;
-  }
-}
-
-async function getOverallRunDistance(athlete_id) {
+async function getOverallActivityDistance(athlete_id, run) {
   const userRef = admin.database().ref(`/users/${athlete_id}`);
   try {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
     const refresh_token = userData.refreshToken;
-    const rideTotal = await strava_api.getAthleteRunTotal(refresh_token, athlete_id);
-    return rideTotal;
+    const rideTotal = await strava_api.getAthleteActivityDistanceTotals(refresh_token, athlete_id);
+    if(run){
+      return rideTotal.run;
+    }else{
+      return rideTotal.ride;
+    }
   } catch (error) {
     console.error("Error reading data:", error);
     throw error;
@@ -208,7 +198,7 @@ async function updateDescription(activity_id, athlete_id, bike) {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
     const refresh_token = userData.refreshToken;
-    const distance = bike ? await getOverallRideDistance(athlete_id) : await getOverallRunDistance(athlete_id);
+    const distance = bike ? await getOverallActivityDistance(athlete_id, false) : await getOverallActivityDistance(athlete_id, true);
     if (distance <= 20013.15) {
       const city_api_url = `https://${process.env.API_URL}/api/city-separation-distance?distance=${distance}`;
       try {
