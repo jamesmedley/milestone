@@ -1,11 +1,10 @@
 require('dotenv').config();
+const ActivityEncoder = require('../fit-encoder-js-main/examples/fitEncodeActivity.js').ActivityEncoder;
 const fetch = require('node-fetch');
-const FitDecoder = require('fit-decoder');
-const FormData = require('form-data');
+const fs = require('fs');
+const auth_link = "https://www.strava.com/oauth/token";
 
-const ACTIVITY_ID = 'your_activity_id';
-
-async function authenticate(refresh_token){
+async function authenticate(refresh_token) {
     try {
         const response = await fetch(auth_link, {
             method: 'post',
@@ -20,69 +19,65 @@ async function authenticate(refresh_token){
                 grant_type: 'refresh_token'
             })
         });
-        return await response.json();
-    }  catch (error) {
+        const authResponse = await response.json();
+        if (!response.ok) {
+            throw new Error(`Failed to authenticate: ${authResponse.message}`);
+        }
+        return authResponse;
+    } catch (error) {
         console.error('Error re-authorizing:', error);
         throw error;
     }
 }
 
 
+async function getActivityStream(activityId, accessToken) {
+    const keys = [
+        'time', 'distance', 'latlng', 'altitude', 'velocity_smooth',
+        'heartrate', 'cadence', 'watts', 'temp', 'moving', 'grade_smooth'
+    ];
+    const keysParam = keys.join(',');
+    const url = `https://www.strava.com/api/v3/activities/${activityId}/streams?keys=${keysParam}`;
 
-async function downloadFitFile(activityId, accessToken) {
-    const url = `https://www.strava.com/api/v3/activities/${activityId}/export_original`;
     const response = await fetch(url, {
+        method: 'GET',
         headers: { 'Authorization': `Bearer ${accessToken}` }
     });
-    if (!response.ok) throw new Error(`Failed to download .fit file: ${response.statusText}`);
-    return await response.buffer();
-}
 
-function stripDistanceField(fitData) {
-    const fitDecoder = new FitDecoder(fitData);
-    const messages = fitDecoder.getMessages();
-    const strippedMessages = messages.map(message => {
-        if (message.type === 'record') {
-            const filteredFields = message.fields.filter(field => field.key !== 'distance');
-            return { ...message, fields: filteredFields };
-        }
-        return message;
-    });
-    return FitDecoder.encode({ messages: strippedMessages });
-}
-
-async function uploadFitFile(modifiedFitData, accessToken) {
-    const form = new FormData();
-    form.append('file', modifiedFitData, { filename: 'activity.fit', contentType: 'application/octet-stream' });
-    form.append('data_type', 'fit');
-
-    const response = await fetch('https://www.strava.com/api/v3/uploads', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-        body: form
-    });
-    if (!response.ok) throw new Error(`Failed to upload .fit file: ${response.statusText}`);
-    return await response.json();
-}
-
-async function main(refreshToken) {
-    try {
-        ACCESS_TOKEN = authenticate(refreshToken).access_token
-        
-        
-        console.log("Downloading .fit file from Strava...");
-        const fitData = await downloadFitFile(ACTIVITY_ID, ACCESS_TOKEN);
-        
-        console.log("Stripping distance field from .fit file...");
-        const modifiedFitData = stripDistanceField(fitData);
-        
-        console.log("Uploading modified .fit file to Strava...");
-        const uploadResponse = await uploadFitFile(modifiedFitData, ACCESS_TOKEN);
-        
-        console.log(`Upload successful: ${JSON.stringify(uploadResponse)}`);
-    } catch (error) {
-        console.error(`An error occurred: ${error.message}`);
+    if (!response.ok) {
+        console.error('Failed to fetch activity details:', response.status, response.statusText);
+        throw new Error(`Failed to fetch activity details: ${response.statusText}`);
     }
+
+    return response.json();
+}
+
+
+async function saveActivityAsFit(activityId, accessToken, filename) {
+    try {
+        const activityData = await getActivityStream(activityId, accessToken);
+        console.log(activityData)
+        return
+
+        var encoder = new ActivityEncoder(activityData);
+  
+        const arrayBuffer = encoder.getFile();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        fs.writeFileSync(filename, buffer);
+        
+        console.log(`File saved to ${filename}`);
+    } catch (error) {
+        console.error('Error creating FIT file:', error);
+    }
+}
+
+async function main() {
+    const activity_id = //00000000;
+    const accessToken = (await authenticate(process.env.MY_REFRESH_TOKEN)).access_token
+    const filename = 'resources/activity.fit';
+
+    await saveActivityAsFit(activity_id, accessToken, filename);
 }
 
 main();

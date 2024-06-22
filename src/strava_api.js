@@ -26,12 +26,12 @@ async function authenticate(refresh_token){
     }
 }
 
-async function getActivityData(activity_id, data){
+async function getActivityData(activity_id, access_token){
     const activity_link = `https://www.strava.com/api/v3/activities/${activity_id}/`;
     const activityResponse = await fetch(activity_link, {
         method: 'GET',
         headers: {
-            'Authorization': `Bearer ${data.access_token}`
+            'Authorization': `Bearer ${access_token}`
         }
     });
 
@@ -79,7 +79,7 @@ async function getAthleteActivityDistanceTotals(refresh_token, athlete_id) {
 
 async function updateDescription(refresh_token, activity_id, description) {
     const data = authenticate(refresh_token)
-    const activityData = getActivityData(activity_id, data)
+    const activityData = getActivityData(activity_id, data.access_token)
 
     const currentDescription = activityData.description || '';
     let updatedDescription = null;
@@ -97,7 +97,7 @@ async function updateDescription(refresh_token, activity_id, description) {
 
 async function updateActivityType(refresh_token, activity_id, newType) {
     const data = authenticate(refresh_token)
-    const activityData = getActivityData(activity_id, data)
+    const activityData = getActivityData(activity_id, data.access_token)
 
     if (newType.name == "") { // set to "{Morning/Afternoon etc.} {newType}"
         const currentName = activityData.name || '';
@@ -119,7 +119,7 @@ async function updateActivityType(refresh_token, activity_id, newType) {
 
 async function getActivityType(refresh_token, activity_id) {
     const data = authenticate(refresh_token)
-    const activityData = getActivityData(activity_id, data)
+    const activityData = getActivityData(activity_id, data.access_token)
     return activityData.type
 }
 
@@ -127,5 +127,6 @@ module.exports = {
     getAthleteActivityDistanceTotals,
     updateDescription,
     updateActivityType,
-    getActivityType
+    getActivityType,
+    getActivityData
 };
