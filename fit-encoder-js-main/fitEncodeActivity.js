@@ -1,4 +1,7 @@
-const { FitEncoder } = require("../fitEncoder");
+const { FitEncoder } = require("./fitEncoder");
+const Message = require('./fitTypes').Message
+const FitConstants = require('./fitConstants').FitConstants
+const FitMessages = require('./fitMessages').FitMessages
 
 class ActivityEncoder extends FitEncoder {
 	constructor(activity) {
@@ -39,36 +42,22 @@ class ActivityEncoder extends FitEncoder {
 		let recordMessage = new Message(FitConstants.mesg_num.record,
 			FitMessages.record,
 			"timestamp",
-			"power",
-			"heart_rate",
-			"cadence");
+			"heart_rate");
 		let sessionMessage = new Message(FitConstants.mesg_num.session,
 			FitMessages.session,
 			"timestamp",
 			"start_time",
 			"total_elapsed_time",
 			"total_timer_time",
-			"total_distance",
-			"total_work",
-			"total_moving_time",
-			//"avg_speed",
-			//"max_speed",
-			"avg_power",
-			//"max_power",
-			"normalized_power",
-			"training_stress_score",
-			"intensity_factor",
-			//"threshold_power",
+			"total_calories",
 			"event",
 			"event_type",
 			"sport",
 			"sub_sport",
 			"avg_heart_rate",
 			"max_heart_rate",
-			"avg_cadence",
-			"max_cadence",
-			//"min_heart_rate"
-			);
+			"min_heart_rate"
+		);
 		let activityMessage = new Message(FitConstants.mesg_num.activity,
 			FitMessages.activity,
 			"total_timer_time",
@@ -77,15 +66,13 @@ class ActivityEncoder extends FitEncoder {
 			"type",
 			"event",
 			"event_type");
-		
+
 		const startTime = FitEncoder.toFitTimestamp(new Date(activity.startTime));
 		const endTime = FitEncoder.toFitTimestamp(new Date(activity.completedDate));
 
-		console.log('dates:', startTime, endTime);
-
 		fileIdMessage.writeDataMessage(
 			startTime, // time_created
-			FitConstants.manufacturer.the_sufferfest,
+			FitConstants.manufacturer.strava,
 			0,
 			FitConstants.file.activity
 		);
@@ -99,32 +86,28 @@ class ActivityEncoder extends FitEncoder {
 
 		deviceInfoMessage.writeDataMessage(
 			startTime,
-			"SYSTM",
-			FitConstants.manufacturer.the_sufferfest,
+			"milestone.me.uk",
+			FitConstants.manufacturer.strava,
 			0,
 			FitConstants.device_index.creator
 		);
 
 		sportMessage.writeDataMessage(
-			FitConstants.sport.cycling,
-			FitConstants.sub_sport.indoor_cycling
+			FitConstants.sport.training,
+			FitConstants.sub_sport.strength_training
 		);
 
 		workoutMessage.writeDataMessage(
 			activity.name,
-			FitConstants.sport.cycling,
-			FitConstants.sub_sport.indoor_cycling
+			FitConstants.sport.training,
+			FitConstants.sub_sport.strength_training
 		);
 
 		// each sample is 1 second
-		console.log(`number of records: ${numRecords}`);
-		for (let ix = 0; ix < numRecords; ++ix)
-		{
+		for (let ix = 0; ix < numRecords; ++ix) {
 			recordMessage.writeDataMessage(
 				startTime + ix,
-				activity.power[ix],
-				activity.heartRate[ix],
-				activity.cadence[ix]
+				activity.heartrate.data[ix],
 			);
 		}
 
@@ -145,32 +128,20 @@ class ActivityEncoder extends FitEncoder {
 		sessionMessage.writeDataMessage(
 			endTime,
 			startTime,
-			(endTime - startTime) * 1000, // scale = 1000
-			(endTime - startTime) * 1000, // scale = 1000
-			(activity.distanceKm) * 1000 * 100, // scale = 100
-			activity.kJ * 1000,
-			(endTime - startTime) * 1000, // scale = 1000
-			//(activity.averageSpeed * 1000) / 2.236936, // scale = 1000
-			//(activity.maxSpeed * 1000) / 2.236936, // scale = 1000
-			activity.averagePower,
-			//0,
-			activity.normalizedPower,
-			activity.tss * 10, // scale = 10
-			activity.intensityFactor * 1000, // scale = 1000
-			//0,
+			(endTime - startTime) * 1000,
+			(endTime - startTime) * 1000,
+			activity.calories,
 			FitConstants.event.session,
 			FitConstants.event_type.stop,
-			FitConstants.sport.cycling,
-			FitConstants.sub_sport.indoor_cycling,
+			FitConstants.sport.training,
+			FitConstants.sub_sport.strength_training,
 			activity.averageHeartRate,
 			activity.maxHeartRate,
-			activity.averageCadence,
-			activity.maxCadence,
-			//0
+			activity.minHeartRate,
 		);
 
 		activityMessage.writeDataMessage(
-			endTime - startTime,
+			(endTime - startTime) * 1000,
 			startTime,
 			1,
 			FitConstants.activity.manual,

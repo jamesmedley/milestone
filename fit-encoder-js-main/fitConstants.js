@@ -1463,6 +1463,7 @@ class FitConstants {
 		"fenix3_hr_kor": 2477,
 		"nautix": 2496,
 		"vivo_active_hr_apac": 2497,
+		"fr35":	2503,
 		"oregon7xx_ww": 2512,
 		"edge_820": 2530,
 		"edge_explore_820": 2531,

@@ -145,11 +145,11 @@ async function getOverallActivityDistance(athlete_id, run) {
     const snapshot = await userRef.once("value");
     const userData = snapshot.val();
     const refresh_token = userData.refreshToken;
-    const rideTotal = await strava_api.getAthleteActivityDistanceTotals(refresh_token, athlete_id);
+    const distanceTotal = await strava_api.getAthleteActivityDistanceTotals(refresh_token, athlete_id);
     if(run){
-      return rideTotal.run;
+      return distanceTotal.run;
     }else{
-      return rideTotal.ride;
+      return distanceTotal.ride;
     }
   } catch (error) {
     console.error("Error reading data:", error);
@@ -464,7 +464,7 @@ app.get('/exchange_token', async (req, res) => {
       if (userData.enableDescriptionChanges === undefined) {
         userData.enableDescriptionChanges = descriptionChanges;
       }
-      if (userData.enableDescriptionChanges === undefined) {
+      if (userData.enableRunDescription === undefined) {
         userData.enableRunDescription = runDescriptions;
       }
       if (userData.enableBikeDescription === undefined) {
