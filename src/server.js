@@ -474,7 +474,7 @@ app.get('/exchange_token', async (req, res) => {
       if (userData.enableDescriptionChanges === undefined) {
         userData.enableDescriptionChanges = descriptionChanges;
       }
-      if (userData.enableDescriptionChanges === undefined) {
+      if (userData.enableRunDescription === undefined) {
         userData.enableRunDescription = runDescriptions;
       }
       if (userData.enableBikeDescription === undefined) {
