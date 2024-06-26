@@ -194,10 +194,12 @@ async function checkRules(athlete_id, activity_id) {
   const refresh_token = userData.refreshToken;
   const activityType = await strava_api.getActivityType(refresh_token, activity_id);
   const activityRules = userData.activityRules;
-  for (let i = 0; i < activityRules.length; i++) {
-    if (activityRules[i]["Original Type"] == activityType) {
-      await updateActivityType(activity_id, athlete_id, { name: activityRules[i]["New Title"], type: activityRules[i]["New Type"] });
-      return // only allowed one rule per activity type
+  if(activityRules){
+    for (let i = 0; i < activityRules.length; i++) {
+      if (activityRules[i]["Original Type"] == activityType) {
+        await updateActivityType(activity_id, athlete_id, { name: activityRules[i]["New Title"], type: activityRules[i]["New Type"] });
+        return // only allowed one rule per activity type
+      }
     }
   }
 }
